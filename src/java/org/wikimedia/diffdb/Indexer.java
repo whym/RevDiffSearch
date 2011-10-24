@@ -49,6 +49,7 @@ public class Indexer implements Runnable {
 		doc.add(new Field("contents", reader));
 		doc.add(new Field("path", f.getCanonicalPath(), Field.Store.YES,
 				Field.Index.NOT_ANALYZED));
+		reader.close();
 		return doc;
 	}
 

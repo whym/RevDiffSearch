@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.Version;
@@ -44,8 +45,12 @@ public class Main {
 		// writer = new IndexWriter(dir, new
 		// StandardAnalyzer(Version.LUCENE_34), true,
 		// IndexWriter.MaxFieldLength.UNLIMITED);
-		IndexWriter writer = new IndexWriter(dir, cfg);
 
+		LogDocMergePolicy lmp = new LogDocMergePolicy();
+		lmp.setUseCompoundFile(true); // This might fix the too many open files,
+									  // see http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
+		cfg.setMergePolicy(lmp);
+		IndexWriter writer = new IndexWriter(dir, cfg);
 		indexDocuments(executor, writer, new File(dataDir));
 
 		// This will make the executor accept no new threads
