@@ -87,7 +87,7 @@ public class Searcher {
     
     IndexSearcher searcher = new IndexSearcher(FSDirectory.open(new File(index)));
     System.err.println("Index contains " + searcher.maxDoc() + " documents.");
-    Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_34);
+    Analyzer analyzer = new SimpleNGramAnalyzer(3);
 
     BufferedReader in = null;
     if (queries != null) {
