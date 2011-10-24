@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.index.IndexWriter;
 
 public class Indexer implements Runnable {
@@ -43,22 +44,28 @@ public class Indexer implements Runnable {
 	}
 
 	protected Document getDocument(File f) throws Exception {
-		// TODO Auto-generated method stub
 		Document doc = new Document();
 		Reader reader = new FileReader(f);
 		doc.add(new Field("contents", reader));
 		doc.add(new Field("path", f.getCanonicalPath(), Field.Store.YES,
 				Field.Index.NOT_ANALYZED));
-		reader.close();
 		return doc;
 	}
 
+	protected void closeReader(Document doc) throws IOException {
+		Fieldable field = doc.getFieldable("contents");
+		final Reader reader = field.readerValue();
+		reader.close();
+	}
+	
 	private void indexFile(File f) throws Exception {
 		System.out.println("Indexing " + f.getCanonicalPath());
 		Document doc = getDocument(f);
 		if (doc != null) {
 			writer.addDocument(doc);
 		}
+		closeReader(doc);
+		
 	}
 
 	protected boolean acceptFile(File f) {
