@@ -1,0 +1,7 @@
+Wikihadoop Lucene Indexer
+
+Purpose
+
+Wikihadoop is a tool to create a database of the differences between two revisions for Wikipedia articles. While knowing who adds / removes certain content is very useful it is still cumbersome to search through the data.
+Hence, we developed a Lucene indexer that takes as input the diffdb created by Wikihadoop and creates an index that is searachable using Lucene.
+ 
