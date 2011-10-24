@@ -44,8 +44,8 @@ public class IndexMerger {
 			System.out.println("   e.g.         index2");
 			System.out.println("   e.g.         index3");
 			System.out
-					.println(" merged_index_dir: A directory where the merged "
-							+ "index will be stored");
+			.println(" merged_index_dir: A directory where the merged "
+					+ "index will be stored");
 			System.out.println("   e.g. merged_indexes");
 			System.exit(1);
 		}
@@ -78,11 +78,12 @@ public class IndexMerger {
 
 			for (int i = 0; i < INDEXES_DIR.list().length; i++) {
 				System.out.println("Adding: " + INDEXES_DIR.list()[i]);
-				SimpleFSDirectory simple_dir = new SimpleFSDirectory(INDEXES_DIR);
+				SimpleFSDirectory simple_dir = new SimpleFSDirectory(
+						INDEXES_DIR);
 				System.out.println(simple_dir.toString());
-				indexes[i] = simple_dir; 
-				//indexes[i] = FSDirectory.getDirectory(INDEXES_DIR
-				//		.getAbsolutePath() + "/" + INDEXES_DIR.list()[i]);
+				indexes[i] = simple_dir;
+				// indexes[i] = FSDirectory.getDirectory(INDEXES_DIR
+				// .getAbsolutePath() + "/" + INDEXES_DIR.list()[i]);
 			}
 
 			System.out.print("Merging added indexes...");

@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -16,47 +15,51 @@ public class Main {
 	public static String indexDir = null;
 	public static String dataDir = null;
 
-  private static void indexDocuments(ExecutorService executor, IndexWriter writer, File file) {
-    if (file.canRead()) {
-      if (file.isDirectory()) {
-        for (File f: file.listFiles()) {
-          indexDocuments(executor, writer, f);
-        }
-      } else {
-        Runnable worker = new Indexer(writer, file);
-        executor.execute(worker);
-      }
-    }
-  }
-	
+	private static void indexDocuments(ExecutorService executor,
+			IndexWriter writer, File file) {
+		if (file.canRead()) {
+			if (file.isDirectory()) {
+				for (File f : file.listFiles()) {
+					indexDocuments(executor, writer, f);
+				}
+			} else {
+				Runnable worker = new Indexer(writer, file);
+				executor.execute(worker);
+			}
+		}
+	}
+
 	public static void main(String[] args) throws Exception {
-		if (args.length!= 2) {
-			throw new Exception ("Usage: java " + Main.class.getName() + " <index dir> <data dir>");
+		if (args.length != 2) {
+			throw new Exception("Usage: java " + Main.class.getName()
+					+ " <index dir> <data dir>");
 		}
 		indexDir = args[0];
 		dataDir = args[1];
 
 		ExecutorService executor = Executors.newFixedThreadPool(NTHREDS);
-		Directory dir =  new NIOFSDirectory(new File(indexDir), null);
-		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34, new SimpleNGramAnalyzer(3));
-		//writer = new  IndexWriter(dir, new StandardAnalyzer(Version.LUCENE_34), true, IndexWriter.MaxFieldLength.UNLIMITED);
-		IndexWriter writer = new IndexWriter(dir, cfg);		
+		Directory dir = new NIOFSDirectory(new File(indexDir), null);
+		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34,
+				new SimpleNGramAnalyzer(3));
+		// writer = new IndexWriter(dir, new
+		// StandardAnalyzer(Version.LUCENE_34), true,
+		// IndexWriter.MaxFieldLength.UNLIMITED);
+		IndexWriter writer = new IndexWriter(dir, cfg);
 
-    indexDocuments(executor, writer, new File(dataDir));
+		indexDocuments(executor, writer, new File(dataDir));
 
-    // This will make the executor accept no new threads
-    // and finish all existing threads in the queue
-    executor.shutdown();
-		
+		// This will make the executor accept no new threads
+		// and finish all existing threads in the queue
+		executor.shutdown();
+
 		// Wait until all threads are finish
 		while (!executor.isTerminated()) {
 
 		}
 		System.out.println("Finished all threads");
-    writer.commit();
+		writer.commit();
 		System.out.println("Writing " + writer.numDocs() + " documents.");
-    writer.close();
+		writer.close();
 	}
-	
-	
+
 }
