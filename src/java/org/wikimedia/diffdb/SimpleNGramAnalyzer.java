@@ -22,7 +22,7 @@ public class SimpleNGramAnalyzer extends Analyzer {
       this.termAttr = (CharTermAttribute)addAttribute(CharTermAttribute.class);
     }
     public boolean incrementToken() {
-      if ( this.endpos >= buff.length() ) {
+      if ( this.endpos > buff.length() ) {
         return false;
       }
       termAttr.setEmpty();
