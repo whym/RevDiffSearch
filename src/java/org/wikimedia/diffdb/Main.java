@@ -15,7 +15,7 @@ import org.apache.lucene.util.Version;
 
 public class Main {
 	private static final int NTHREDS = 10;
-  private static final long REPORT_DURATION_MSECS = 100L;
+  private static final long REPORT_DURATION_MSECS = 1000L;
 	public static String indexDir = null;
 	public static String dataDir = null;
 
@@ -39,14 +39,17 @@ public class Main {
     return indexDocumentsRec(executor, writer, file, 0);
   }
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		if (args.length != 2) {
-			throw new Exception("Usage: java " + Main.class.getName()
-					+ " <index dir> <data dir>");
+			System.err.println("Usage: java " + Main.class.getName()
+                         + " <index dir> <data dir>");
+      System.exit(1);
 		}
 		indexDir = args[0];
 		dataDir = args[1];
 		double ramBufferSizeMB = 128;
+
+    final long start = System.currentTimeMillis();
 		
 		final ExecutorService executor = Executors.newFixedThreadPool(NTHREDS);
 		Directory dir = new NIOFSDirectory(new File(indexDir), null);
@@ -63,40 +66,40 @@ public class Main {
 		cfg.setMergePolicy(lmp);
 
 		final IndexWriter writer = new IndexWriter(dir, cfg);
-		
-		final int numFiles = indexDocuments(executor, writer, new File(dataDir));
-
-		// run a thread that reports the progress periodically
-    new Thread(new Runnable(){
-        public void run() {
-          long start = System.currentTimeMillis();
-          try {
-            while ( !executor.isTerminated() ) {
-              System.err.println("" + writer.numDocs() + "/" + numFiles + " documents have been indexed in " + (System.currentTimeMillis() - start) + " msecs");
-              Thread.sleep(REPORT_DURATION_MSECS);
+    try {
+      // run a thread that reports the progress periodically
+      new Thread(new Runnable(){
+          public void run() {
+            try {
+              while ( !executor.isTerminated() ) {
+                System.err.println("" + writer.numDocs() + " documents have been indexed in " + (System.currentTimeMillis() - start) + " msecs");
+                Thread.sleep(REPORT_DURATION_MSECS);
+              }
+            } catch (IOException e) {
+              e.printStackTrace();
+            } catch (InterruptedException e) {
+              System.err.println("Interrupted");
             }
-          } catch (IOException e) {
-            e.printStackTrace();
-          } catch (InterruptedException e) {
-            System.err.println("Interrupted");
-          } finally {
-            System.err.println("Finished in " + (System.currentTimeMillis() - start) + " msecs");
           }
-        }
-      }).start();
+        }).start();
+      
+      int numFiles = indexDocuments(executor, writer, new File(dataDir));
+      // This will make the executor accept no new threads
+      // and finish all existing threads in the queue
+      executor.shutdown();
+      
+      // Wait until all threads are finish
+      while (!executor.isTerminated()) {
+        Thread.sleep(1000L);
+      }
+      System.out.println("Finished all threads");
+      writer.optimize();
+      System.out.println("Writing " + writer.numDocs() + " documents.");
 
-		// This will make the executor accept no new threads
-		// and finish all existing threads in the queue
-		executor.shutdown();
-		
-		// Wait until all threads are finish
-		while (!executor.isTerminated()) {
-      Thread.sleep(1000L);
-		}
-		System.out.println("Finished all threads");
-		writer.commit();
-		System.out.println("Writing " + writer.numDocs() + " documents.");
-		writer.close();
+    } finally {
+      System.err.println("Finished in " + (System.currentTimeMillis() - start) + " msecs");
+      writer.close();
+    }
 	}
 
 }
