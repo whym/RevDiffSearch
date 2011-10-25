@@ -89,7 +89,7 @@ public class Indexer implements Runnable {
 
 		try {
 			// Indexer indexer = new Indexer(Indexer.writer, this.sourceFile);
-			numIndexed += this.index();
+			numIndexed = this.index();
 			this.close();
 		} catch (IOException e) {
 			System.out.println(e);
