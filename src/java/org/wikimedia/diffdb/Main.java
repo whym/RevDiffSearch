@@ -1,6 +1,7 @@
 package org.wikimedia.diffdb;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -14,27 +15,29 @@ import org.apache.lucene.util.Version;
 
 public class Main {
 	private static final int NTHREDS = 10;
+  private static final long REPORT_DURATION_MSECS = 100L;
 	public static String indexDir = null;
 	public static String dataDir = null;
-	public static int numFiles = 0;
 
-	private static void indexDocuments(ExecutorService executor,
-			IndexWriter writer, File file) {
-//		System.out.println(file);
-//		System.out.println(numFiles);
+	private static int indexDocumentsRec(ExecutorService executor,
+                                       IndexWriter writer, File file, int numFiles) {
 		if (file.canRead()) {
 			if (file.isDirectory()) {
-				numFiles += file.listFiles().length;
 				for (File f : file.listFiles()) {
-					indexDocuments(executor, writer, f);
+					numFiles = indexDocumentsRec(executor, writer, f, numFiles);
 				}
 			} else {
 				Runnable worker = new Indexer(writer, file);
 				executor.execute(worker);
-				numFiles--;
+				++numFiles;
 			}
 		}
+    return numFiles;
 	}
+	private static int indexDocuments(ExecutorService executor,
+                                    IndexWriter writer, File file) {
+    return indexDocumentsRec(executor, writer, file, 0);
+  }
 
 	public static void main(String[] args) throws Exception {
 		if (args.length != 2) {
@@ -45,7 +48,7 @@ public class Main {
 		dataDir = args[1];
 		double ramBufferSizeMB = 128;
 		
-		ExecutorService executor = Executors.newFixedThreadPool(NTHREDS);
+		final ExecutorService executor = Executors.newFixedThreadPool(NTHREDS);
 		Directory dir = new NIOFSDirectory(new File(indexDir), null);
 		LogDocMergePolicy lmp = new LogDocMergePolicy();
 		lmp.setUseCompoundFile(true); // This might fix the too many open files,
@@ -59,23 +62,36 @@ public class Main {
 		cfg.setRAMBufferSizeMB(ramBufferSizeMB);
 		cfg.setMergePolicy(lmp);
 
-		IndexWriter writer = new IndexWriter(dir, cfg);
+		final IndexWriter writer = new IndexWriter(dir, cfg);
 		
-		indexDocuments(executor, writer, new File(dataDir));
+		final int numFiles = indexDocuments(executor, writer, new File(dataDir));
+
+		// run a thread that reports the progress periodically
+    new Thread(new Runnable(){
+        public void run() {
+          long start = System.currentTimeMillis();
+          try {
+            while ( !executor.isTerminated() ) {
+              System.err.println("" + writer.numDocs() + "/" + numFiles + " documents have been indexed in " + (System.currentTimeMillis() - start) + " msecs");
+              Thread.sleep(REPORT_DURATION_MSECS);
+            }
+          } catch (IOException e) {
+            e.printStackTrace();
+          } catch (InterruptedException e) {
+            System.err.println("Interrupted");
+          } finally {
+            System.err.println("Finished in " + (System.currentTimeMillis() - start) + " msecs");
+          }
+        }
+      }).start();
 
 		// This will make the executor accept no new threads
 		// and finish all existing threads in the queue
 		executor.shutdown();
 		
-		//
-		Caller caller = new Caller(writer);
-		Callback callback =  new CallbackImpl();
-		caller.register(callback);
-		
-		
 		// Wait until all threads are finish
 		while (!executor.isTerminated()) {
-			caller.execute();
+      Thread.sleep(1000L);
 		}
 		System.out.println("Finished all threads");
 		writer.commit();

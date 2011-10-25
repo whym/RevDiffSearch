@@ -59,7 +59,7 @@ public class Indexer implements Runnable {
 	}
 	
 	private void indexFile(File f) throws Exception {
-		System.out.println("Indexing " + f.getCanonicalPath());
+		//System.out.println("" + Thread.currentThread()+ ": Indexing " + f.getCanonicalPath());
 		Document doc = getDocument(f);
 		if (doc != null) {
 			writer.addDocument(doc);
