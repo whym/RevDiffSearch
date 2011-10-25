@@ -16,17 +16,22 @@ public class Main {
 	private static final int NTHREDS = 10;
 	public static String indexDir = null;
 	public static String dataDir = null;
+	public static int numFiles = 0;
 
 	private static void indexDocuments(ExecutorService executor,
 			IndexWriter writer, File file) {
+//		System.out.println(file);
+//		System.out.println(numFiles);
 		if (file.canRead()) {
 			if (file.isDirectory()) {
+				numFiles += file.listFiles().length;
 				for (File f : file.listFiles()) {
 					indexDocuments(executor, writer, f);
 				}
 			} else {
 				Runnable worker = new Indexer(writer, file);
 				executor.execute(worker);
+				numFiles--;
 			}
 		}
 	}
@@ -38,8 +43,8 @@ public class Main {
 		}
 		indexDir = args[0];
 		dataDir = args[1];
-		double ramBufferSizeMB = 48;
-
+		double ramBufferSizeMB = 128;
+		
 		ExecutorService executor = Executors.newFixedThreadPool(NTHREDS);
 		Directory dir = new NIOFSDirectory(new File(indexDir), null);
 		LogDocMergePolicy lmp = new LogDocMergePolicy();
@@ -61,10 +66,16 @@ public class Main {
 		// This will make the executor accept no new threads
 		// and finish all existing threads in the queue
 		executor.shutdown();
-
+		
+		//
+		Caller caller = new Caller(writer);
+		Callback callback =  new CallbackImpl();
+		caller.register(callback);
+		
+		
 		// Wait until all threads are finish
 		while (!executor.isTerminated()) {
-
+			caller.execute();
 		}
 		System.out.println("Finished all threads");
 		writer.commit();

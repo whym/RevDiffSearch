@@ -84,7 +84,7 @@ public class Indexer implements Runnable {
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-		long start = System.currentTimeMillis();
+		//long start = System.currentTimeMillis();
 		// Indexer indexer;
 
 		try {
@@ -97,10 +97,10 @@ public class Indexer implements Runnable {
 			System.out.println(e);
 		}
 
-		long end = System.currentTimeMillis();
+		//long end = System.currentTimeMillis();
 
-		System.out.println("Indexing " + numIndexed + " files took "
-				+ (end - start) + " milliseconds");
+//		System.out.println("Indexing " + numIndexed + " files took "
+//				+ (end - start) + " milliseconds");
 
 	}
 
