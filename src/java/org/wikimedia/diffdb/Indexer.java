@@ -17,69 +17,74 @@ import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.index.IndexWriter;
 
-class Rev_id {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+interface Prop {
+	Store store();
+	Index index();
 }
 
-class Page_id {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class Rev_id implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Namespace {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.ANALYZED;
+class Page_id implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Title {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class Namespace implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.ANALYZED;}
 }
 
-class Timestamp {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class Title implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Comment {
-	public static final Store store = Field.Store.NO;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class Timestamp implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Minor {
-	public static final Store store = Field.Store.NO;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class Comment implements Prop {
+	public Store store() {return Field.Store.NO;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class User_id {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class Minor implements Prop {
+	public Store store() {return Field.Store.NO;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class User_text {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class User_id implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Diff_position {
-	public static final Store store = Field.Store.NO;
-	public static final Index index = Field.Index.NOT_ANALYZED;
+class User_text implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Diff_action {
-	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.ANALYZED;
+class Diff_position implements Prop {
+	public Store store() {return Field.Store.NO;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Diff_content {
-	public static final Store store = Field.Store.NO;
-	public static final Index index = Field.Index.ANALYZED;
+class Diff_action implements Prop {
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.ANALYZED;}
+}
+
+class Diff_content implements Prop {
+	public Store store() {return Field.Store.NO;}
+	public Index index() {return Field.Index.ANALYZED;}
 }
 
 class KeyMap {
-	public static HashMap<Integer, Object> map = new HashMap<Integer, Object>();
-	public static final int length = 11;
+	public HashMap<Integer, String> map = new HashMap<Integer, String>();
+	public final int length = 11;
 
 	public KeyMap() {
 		map.put(0, "Rev_id");
@@ -112,7 +117,7 @@ class DocumentCollection implements Iterable<Document> {
 	@Override
 	public Iterator<Document> iterator() {
 		return new Iterator<Document>() {
-			int i=0;
+			int i = 0;
 
 			@Override
 			public Document next() {
@@ -123,7 +128,7 @@ class DocumentCollection implements Iterable<Document> {
 
 			@Override
 			public void remove() {
-				throw new UnsupportedOperationException();				
+				throw new UnsupportedOperationException();
 			}
 
 			@Override
@@ -171,19 +176,20 @@ public class Indexer implements Runnable {
 		Document doc = new Document();
 		DocumentCollection dc = new DocumentCollection();
 		BufferedReaderIterable in = new BufferedReaderIterable(f);
-		for (Hashtable<Integer, String> read : in) {
+		KeyMap km = new KeyMap();
+		for (Hashtable<String, String> read : in) {
 			// Do something with the line
-			Iterator<Entry<Integer, String>> it = read.entrySet().iterator();
+			Iterator<Entry<String, String>> it = read.entrySet().iterator();
 			int i = 0;
 
 			while (it.hasNext()) {
-				Map.Entry<Integer, String> map = it.next();
-				Integer key = map.getKey();
+				Map.Entry<String, String> map = it.next();
+				String key = map.getKey();
 				String value = map.getValue();
-				String classname = (String) KeyMap.map.get(i);
-				Class<?> Prop = Class.forName(classname);
-				Object props = Prop.newInstance();
-				doc.add(new Field(key, value, props.store, props.index));
+				String classname = (String) km.map.get(i);
+				Class<? extends Prop> cls = Class.forName(classname).asSubclass(Prop.class);
+				Prop props = (Prop)cls.newInstance();
+				doc.add(new Field(key, value, props.store(), props.index()));
 				dc.add(doc);
 				i++;
 			}
@@ -205,7 +211,7 @@ public class Indexer implements Runnable {
 	private void indexFile(File f) throws Exception {
 		// System.out.println("" + Thread.currentThread()+ ": Indexing " +
 		// f.getCanonicalPath());
-		Document doc = getDocument(f);
+		DocumentCollection  dc = getDocument(f);
 		if (doc != null) {
 			writer.addDocument(doc);
 		}

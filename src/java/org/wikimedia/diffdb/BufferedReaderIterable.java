@@ -8,10 +8,10 @@ import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
 
-public class BufferedReaderIterable implements Iterable<Hashtable<Integer, String>> {
+public class BufferedReaderIterable implements Iterable<Hashtable<String, String>> {
 
 	private BufferedReader mine;
-	private Iterator<Hashtable<Integer, String>> i;
+	private Iterator<Hashtable<String, String>> i;
 
 	public BufferedReaderIterable(BufferedReader br) {
 		i = new BufferedReaderIterator(br);
@@ -22,15 +22,15 @@ public class BufferedReaderIterable implements Iterable<Hashtable<Integer, Strin
 		i = new BufferedReaderIterator(mine);
 	}
 
-	public Iterator<Hashtable<Integer, String>> iterator() {
+	public Iterator<Hashtable<String, String>> iterator() {
 		return i;
 	}
 
-	private class BufferedReaderIterator implements Iterator<Hashtable<Integer, String>> {
+	private class BufferedReaderIterator implements Iterator<Hashtable<String, String>> {
 		private BufferedReader br;
 		private String line;
 		private String[] tmp;
-		private Hashtable<Integer, String> diff;
+		private Hashtable<String, String> diff;
 
 		public BufferedReaderIterator(BufferedReader aBR) {
 			(br = aBR).getClass();
@@ -41,8 +41,8 @@ public class BufferedReaderIterable implements Iterable<Hashtable<Integer, Strin
 			return line != null;
 		}
 
-		public Hashtable<Integer, String> next() {
-			Hashtable<Integer, String> retval = diff;
+		public Hashtable<String, String> next() {
+			Hashtable<String, String> retval = diff;
 			advance();
 			return retval;
 		}
@@ -56,9 +56,9 @@ public class BufferedReaderIterable implements Iterable<Hashtable<Integer, Strin
 			try {
 				line = br.readLine();
 				tmp = line.split(",");
-				
-				for (int i=0; i<KeyMap.length; i++){
-					diff.put(i, tmp[i]);
+				KeyMap km = new KeyMap();
+				for (int i=0; i<km.length; i++){
+					diff.put(km.map.get(i), tmp[i]);
 				}
 				
 			} catch (IOException e) { /* TODO */
