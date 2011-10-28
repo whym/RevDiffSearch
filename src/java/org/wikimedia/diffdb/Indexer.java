@@ -8,6 +8,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Vector;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -23,7 +24,7 @@ class Rev_id {
 
 class Page_id {
 	public static final Store store = Field.Store.YES;
-	public static final Index index = Field.Index.NOT_ANALYZED; 
+	public static final Index index = Field.Index.NOT_ANALYZED;
 }
 
 class Namespace {
@@ -65,6 +66,7 @@ class Diff_position {
 	public static final Store store = Field.Store.NO;
 	public static final Index index = Field.Index.NOT_ANALYZED;
 }
+
 class Diff_action {
 	public static final Store store = Field.Store.YES;
 	public static final Index index = Field.Index.ANALYZED;
@@ -74,6 +76,7 @@ class Diff_content {
 	public static final Store store = Field.Store.NO;
 	public static final Index index = Field.Index.ANALYZED;
 }
+
 class KeyMap {
 	public static HashMap<Integer, Object> map = new HashMap<Integer, Object>();
 	public static final int length = 11;
@@ -93,6 +96,42 @@ class KeyMap {
 		map.put(11, "Diff_content");
 	}
 
+}
+
+class DocumentCollection implements Iterable<Document> {
+	private Vector<Document> documents;
+
+	public DocumentCollection() {
+		documents = new Vector<Document>();
+	}
+
+	public void add(Document doc) {
+		documents.add(doc);
+	}
+
+	@Override
+	public Iterator<Document> iterator() {
+		return new Iterator<Document>() {
+			int i=0;
+
+			@Override
+			public Document next() {
+				Document doc = documents.get(i);
+				i++;
+				return doc;
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();				
+			}
+
+			@Override
+			public boolean hasNext() {
+				return i < documents.size();
+			}
+		};
+	}
 }
 
 public class Indexer implements Runnable {
@@ -128,31 +167,33 @@ public class Indexer implements Runnable {
 		return writer.numDocs();
 	}
 
-	protected Document getDocument(File f) throws Exception {
+	protected DocumentCollection getDocument(File f) throws Exception {
 		Document doc = new Document();
+		DocumentCollection dc = new DocumentCollection();
 		BufferedReaderIterable in = new BufferedReaderIterable(f);
 		for (Hashtable<Integer, String> read : in) {
-		    // Do something with the line
+			// Do something with the line
 			Iterator<Entry<Integer, String>> it = read.entrySet().iterator();
 			int i = 0;
-			
-			while (it.hasNext()){
+
+			while (it.hasNext()) {
 				Map.Entry<Integer, String> map = it.next();
 				Integer key = map.getKey();
 				String value = map.getValue();
-				String classname  = (String) KeyMap.map.get(i);
+				String classname = (String) KeyMap.map.get(i);
 				Class<?> Prop = Class.forName(classname);
 				Object props = Prop.newInstance();
-				//doc.add(new Field(key, value, props.store, props.index));
+				doc.add(new Field(key, value, props.store, props.index));
+				dc.add(doc);
 				i++;
 			}
-			//Reader reader = new FileReader(f);
-			//doc.add(new Field("contents", reader));
-			//doc.add(new Field("path", f.getCanonicalPath(), Field.Store.YES,
-			//		Field.Index.NOT_ANALYZED));
-			//return doc;
+			// Reader reader = new FileReader(f);
+			// doc.add(new Field("contents", reader));
+			// doc.add(new Field("path", f.getCanonicalPath(), Field.Store.YES,
+			// Field.Index.NOT_ANALYZED));
+			// return doc;
 		}
-		return doc;
+		return dc;
 	}
 
 	protected void closeReader(Document doc) throws IOException {
@@ -162,7 +203,8 @@ public class Indexer implements Runnable {
 	}
 
 	private void indexFile(File f) throws Exception {
-		//System.out.println("" + Thread.currentThread()+ ": Indexing " + f.getCanonicalPath());
+		// System.out.println("" + Thread.currentThread()+ ": Indexing " +
+		// f.getCanonicalPath());
 		Document doc = getDocument(f);
 		if (doc != null) {
 			writer.addDocument(doc);
@@ -187,7 +229,7 @@ public class Indexer implements Runnable {
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-		//long start = System.currentTimeMillis();
+		// long start = System.currentTimeMillis();
 		// Indexer indexer;
 
 		try {
@@ -200,10 +242,10 @@ public class Indexer implements Runnable {
 			System.out.println(e);
 		}
 
-		//long end = System.currentTimeMillis();
+		// long end = System.currentTimeMillis();
 
-//		System.out.println("Indexing " + numIndexed + " files took "
-//				+ (end - start) + " milliseconds");
+		// System.out.println("Indexing " + numIndexed + " files took "
+		// + (end - start) + " milliseconds");
 
 	}
 
