@@ -35,6 +35,7 @@ import org.apache.lucene.util.Version;
 
 /** Simple command-line based search demo. */
 public class Searcher {
+  private static final String searchKey = "rev_id";
 
 	private Searcher() {
 	}
@@ -51,7 +52,7 @@ public class Searcher {
 		}
 
 		String index = "index";
-		String field = "contents";
+		String field = "diff";
 		String queries = null;
 		int repeat = 0;
 		boolean raw = false;
@@ -100,7 +101,7 @@ public class Searcher {
 		} else {
 			in = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
 		}
-		QueryParser parser = new QueryParser(Version.LUCENE_31, field, analyzer);
+		QueryParser parser = new QueryParser(Version.LUCENE_34, field, analyzer);
 		while (true) {
 			if (queries == null && queryString == null) { // prompt the user
 				System.out.println("Enter query: ");
@@ -154,7 +155,6 @@ public class Searcher {
 	public static void doPagingSearch(BufferedReader in,
 			IndexSearcher searcher, Query query, int hitsPerPage, boolean raw,
 			boolean interactive) throws IOException {
-
 		// Collect enough docs to show 5 pages
 		TopDocs results = searcher.search(query, 5 * hitsPerPage);
 		ScoreDoc[] hits = results.scoreDocs;
@@ -190,16 +190,12 @@ public class Searcher {
 				}
 
 				Document doc = searcher.doc(hits[i].doc);
-				String path = doc.get("path");
-				if (path != null) {
-					System.out.println((i + 1) + ". " + path);
-					String title = doc.get("title");
-					if (title != null) {
-						System.out.println("   Title: " + doc.get("title"));
-					}
+				String key = doc.get(searchKey);
+				if (key != null) {
+					System.out.println((i + 1) + ". " + key);
 				} else {
 					System.out.println((i + 1) + ". "
-							+ "No path for this document");
+							+ "No key (" + searchKey + ") for this document");
 				}
 
 			}

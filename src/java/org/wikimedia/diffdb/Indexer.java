@@ -2,13 +2,11 @@ package org.wikimedia.diffdb;
 
 import java.io.File;
 import java.io.Reader;
+import java.io.FileReader;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Vector;
+import java.util.Arrays;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -18,131 +16,85 @@ import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.index.IndexWriter;
 
 interface Prop {
+  String name();
 	Store store();
 	Index index();
 }
 
 class Rev_id implements Prop {
+  public String name() { return "rev_id"; }
 	public Store store() {return Field.Store.YES;}
 	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
 class Page_id implements Prop {
+  public String name() { return "page_id"; }
 	public Store store() {return Field.Store.YES;}
 	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
 class Namespace implements Prop {
+  public String name() { return "namespace"; }
 	public Store store() {return Field.Store.YES;}
 	public Index index() {return Field.Index.ANALYZED;}
 }
 
 class Title implements Prop {
+  public String name() { return "title"; }
 	public Store store() {return Field.Store.YES;}
-	public Index index() {return Field.Index.NOT_ANALYZED;}
+	public Index index() {return Field.Index.ANALYZED;}
 }
 
 class Timestamp implements Prop {
+  public String name() { return "timestamp"; }
 	public Store store() {return Field.Store.YES;}
 	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
 class Comment implements Prop {
+  public String name() { return "comment"; }
 	public Store store() {return Field.Store.NO;}
-	public Index index() {return Field.Index.NOT_ANALYZED;}
+	public Index index() {return Field.Index.ANALYZED;}
 }
 
 class Minor implements Prop {
+  public String name() { return "minor"; }
 	public Store store() {return Field.Store.NO;}
 	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
 class User_id implements Prop {
+  public String name() { return "user_id"; }
 	public Store store() {return Field.Store.YES;}
 	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
 class User_text implements Prop {
+  public String name() { return "user_text"; }
 	public Store store() {return Field.Store.YES;}
 	public Index index() {return Field.Index.NOT_ANALYZED;}
 }
 
-class Diff_position implements Prop {
-	public Store store() {return Field.Store.NO;}
-	public Index index() {return Field.Index.NOT_ANALYZED;}
-}
-
-class Diff_action implements Prop {
-	public Store store() {return Field.Store.YES;}
-	public Index index() {return Field.Index.ANALYZED;}
-}
-
-class Diff_content implements Prop {
+class Diff implements Prop {
+  public String name() { return "diff"; }
 	public Store store() {return Field.Store.NO;}
 	public Index index() {return Field.Index.ANALYZED;}
-}
-
-class KeyMap {
-	public HashMap<Integer, String> map = new HashMap<Integer, String>();
-	public final int length = 11;
-
-	public KeyMap() {
-		map.put(0, "Rev_id");
-		map.put(1, "Page_id");
-		map.put(2, "Namespace");
-		map.put(3, "Title");
-		map.put(4, "Timestamp");
-		map.put(5, "Comment");
-		map.put(6, "Minor");
-		map.put(7, "User_id");
-		map.put(8, "User_text");
-		map.put(9, "Diff_position");
-		map.put(10, "Diff_action");
-		map.put(11, "Diff_content");
-	}
-
-}
-
-class DocumentCollection implements Iterable<Document> {
-	private Vector<Document> documents;
-
-	public DocumentCollection() {
-		documents = new Vector<Document>();
-	}
-
-	public void add(Document doc) {
-		documents.add(doc);
-	}
-
-	@Override
-	public Iterator<Document> iterator() {
-		return new Iterator<Document>() {
-			int i = 0;
-
-			@Override
-			public Document next() {
-				Document doc = documents.get(i);
-				i++;
-				return doc;
-			}
-
-			@Override
-			public void remove() {
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public boolean hasNext() {
-				return i < documents.size();
-			}
-		};
-	}
 }
 
 public class Indexer implements Runnable {
-	public static int numIndexed = 0;
-
 	public static IndexWriter writer;
+  private static Prop[] propTypes = new Prop[]{
+    new Rev_id(),
+    new Page_id(),
+    new Namespace(),
+    new Title(),
+    new Timestamp(),
+    new Comment(),
+    new Minor(),
+    new User_id(),
+    new User_text(),
+  };
+
 	public File sourceFile = null;
 
 	public Indexer(IndexWriter writer, File f) {
@@ -163,62 +115,6 @@ public class Indexer implements Runnable {
 		}
 	}
 
-	public int index() throws Exception {
-		if (fileReadable(this.sourceFile)) {
-			indexFile(this.sourceFile);
-		} else {
-			System.err.println("File " + this.sourceFile + " is not readable.");
-		}
-		return writer.numDocs();
-	}
-
-	protected DocumentCollection getDocument(File f) throws Exception {
-		Document doc = new Document();
-		DocumentCollection dc = new DocumentCollection();
-		BufferedReaderIterable in = new BufferedReaderIterable(f);
-		KeyMap km = new KeyMap();
-		for (Hashtable<String, String> read : in) {
-			// Do something with the line
-			Iterator<Entry<String, String>> it = read.entrySet().iterator();
-			int i = 0;
-
-			while (it.hasNext()) {
-				Map.Entry<String, String> map = it.next();
-				String key = map.getKey();
-				String value = map.getValue();
-				String classname = (String) km.map.get(i);
-				Class<? extends Prop> cls = Class.forName(classname).asSubclass(Prop.class);
-				Prop props = (Prop)cls.newInstance();
-				doc.add(new Field(key, value, props.store(), props.index()));
-				dc.add(doc);
-				i++;
-			}
-			// Reader reader = new FileReader(f);
-			// doc.add(new Field("contents", reader));
-			// doc.add(new Field("path", f.getCanonicalPath(), Field.Store.YES,
-			// Field.Index.NOT_ANALYZED));
-			// return doc;
-		}
-		return dc;
-	}
-
-	protected void closeReader(Document doc) throws IOException {
-		Fieldable field = doc.getFieldable("contents");
-		final Reader reader = field.readerValue();
-		reader.close();
-	}
-
-	private void indexFile(File f) throws Exception {
-		// System.out.println("" + Thread.currentThread()+ ": Indexing " +
-		// f.getCanonicalPath());
-		DocumentCollection  dc = getDocument(f);
-		if (doc != null) {
-			writer.addDocument(doc);
-		}
-		closeReader(doc);
-
-	}
-
 	protected boolean acceptFile(File f) {
 		// TODO Auto-generated method stub
 		if (f.getName().endsWith(".txt")) {
@@ -232,6 +128,81 @@ public class Indexer implements Runnable {
 		return true;
 	}
 
+	protected Iterable<Document> getDocument(Reader reader_) throws IOException {
+		final Document doc = new Document();
+    final BufferedReader reader = new BufferedReader(reader_);
+    final String[] line = new String[]{null};
+    final int[] linenumber = new int[]{0};
+
+    // initialize document
+    for ( int i = 0; i < propTypes.length; ++i ) {
+      Prop proptype = propTypes[i];
+      doc.add(new Field(proptype.name(), "", proptype.store(), proptype.index()));
+    }
+    final Prop diff = new Diff();
+    doc.add(new Field(diff.name(), "", diff.store(), diff.index()));
+
+    final StringBuffer buff = new StringBuffer("");
+    
+    return new Iterable<Document>() {
+      public Iterator<Document> iterator() {
+        return new Iterator<Document>() {
+          @Override
+            public Document next() {
+            String[] props = line[0].split("\t");
+            for ( int i = 0; i < propTypes.length; ++i ) {
+              Prop proptype = propTypes[i];
+              Field field = (Field)doc.getFieldable(proptype.name());
+              field.setValue(props[i]);
+              //System.err.println(propTypes[i] + ": " + props[i]);//!
+            }
+            buff.delete(0, buff.length());
+            for ( int i = propTypes.length; i < props.length; ++i ) {
+              buff.append(props[i] + "\n");
+            }
+            Field field = (Field)doc.getFieldable(diff.name());
+            field.setValue(buff.toString());
+            line[0] = null;
+            if ( props.length < propTypes.length ) {
+              System.err.println("line " + linenumber[0] + ": illegal line format");
+            }
+            return doc;
+          }
+          
+          @Override
+            public void remove() {
+            throw new UnsupportedOperationException();
+          }
+          
+          @Override
+            public boolean hasNext() {
+            if ( line[0] != null ) {
+              return true;
+            }
+            try {
+              if ( (line[0] = reader.readLine()) != null ) {
+                ++linenumber[0];
+                return true;
+              }
+            } catch (IOException e) {
+            }
+            return false;
+          }
+        };
+      }
+    };
+	}
+
+	private void indexFile(File f) throws IOException {
+    Reader reader = new FileReader(f);
+		// System.out.println("" + Thread.currentThread()+ ": Indexing " +
+		// f.getCanonicalPath());
+		for ( Document doc: getDocument(reader) ) {
+			writer.addDocument(doc);
+		}
+    reader.close();
+	}
+
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
@@ -239,12 +210,13 @@ public class Indexer implements Runnable {
 		// Indexer indexer;
 
 		try {
-			// Indexer indexer = new Indexer(Indexer.writer, this.sourceFile);
-			numIndexed = this.index();
+      if (fileReadable(this.sourceFile)) {
+        indexFile(this.sourceFile);
+      } else {
+        System.err.println("File " + this.sourceFile + " is not readable.");
+      }
 			this.close();
 		} catch (IOException e) {
-			System.out.println(e);
-		} catch (Exception e) {
 			System.out.println(e);
 		}
 

@@ -15,7 +15,7 @@ import org.apache.lucene.util.Version;
 
 public class Main {
 	private static final int NTHREDS = 10;
-  private static final long REPORT_DURATION_MSECS = 1000L;
+  private static final long REPORT_DURATION_MSECS = 10000L;
 	public static String indexDir = null;
 	public static String dataDir = null;
 
@@ -93,7 +93,7 @@ public class Main {
         Thread.sleep(1000L);
       }
       System.out.println("Finished all threads");
-      writer.optimize();
+      //writer.optimize();
       System.out.println("Writing " + writer.numDocs() + " documents.");
 
     } finally {
