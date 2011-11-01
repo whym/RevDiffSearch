@@ -22,9 +22,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -191,8 +195,16 @@ public class Searcher {
 
 				Document doc = searcher.doc(hits[i].doc);
 				String key = doc.get(searchKey);
+				List<Fieldable> fields = doc.getFields();
+				Iterator<Fieldable> it = fields.iterator();
 				if (key != null) {
-					System.out.println((i + 1) + ". " + key);
+					System.out.print((i+1) +".\t");
+					while (it.hasNext()) {
+						Fieldable field = it.next();
+						System.out.print(field.stringValue() + ".\t");
+					}
+					//System.out.println((i + 1) + ". " + key);
+					System.out.println();
 				} else {
 					System.out.println((i + 1) + ". "
 							+ "No key (" + searchKey + ") for this document");
