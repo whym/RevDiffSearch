@@ -27,7 +27,6 @@ import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -39,7 +38,7 @@ import org.apache.lucene.util.Version;
 
 /** Simple command-line based search demo. */
 public class Searcher {
-  private static final String searchKey = "rev_id";
+	private static final String searchKey = "rev_id";
 
 	private Searcher() {
 	}
@@ -85,7 +84,7 @@ public class Searcher {
 				hitsPerPage = Integer.parseInt(args[i + 1]);
 				if (hitsPerPage <= 0) {
 					System.err
-							.println("There must be at least 1 hit per page.");
+					.println("There must be at least 1 hit per page.");
 					System.exit(1);
 				}
 				i++;
@@ -172,9 +171,9 @@ public class Searcher {
 		while (true) {
 			if (end > hits.length) {
 				System.out
-						.println("Only results 1 - " + hits.length + " of "
-								+ numTotalHits
-								+ " total matching documents collected.");
+				.println("Only results 1 - " + hits.length + " of "
+						+ numTotalHits
+						+ " total matching documents collected.");
 				System.out.println("Collect more (y/n) ?");
 				String line = in.readLine();
 				if (line.length() == 0 || line.charAt(0) == 'n') {
@@ -198,16 +197,16 @@ public class Searcher {
 				List<Fieldable> fields = doc.getFields();
 				Iterator<Fieldable> it = fields.iterator();
 				if (key != null) {
-					System.out.print((i+1) +".\t");
+					System.out.print((i + 1) + ".\t");
 					while (it.hasNext()) {
 						Fieldable field = it.next();
 						System.out.print(field.stringValue() + ".\t");
 					}
-					//System.out.println((i + 1) + ". " + key);
+					// System.out.println((i + 1) + ". " + key);
 					System.out.println();
 				} else {
-					System.out.println((i + 1) + ". "
-							+ "No key (" + searchKey + ") for this document");
+					System.out.println((i + 1) + ". " + "No key (" + searchKey
+							+ ") for this document");
 				}
 
 			}
@@ -227,7 +226,7 @@ public class Searcher {
 						System.out.print("(n)ext page, ");
 					}
 					System.out
-							.println("(q)uit or enter number to jump to a page.");
+					.println("(q)uit or enter number to jump to a page.");
 
 					String line = in.readLine();
 					if (line.length() == 0 || line.charAt(0) == 'q') {
