@@ -16,6 +16,7 @@ import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.index.IndexWriter;
 
 interface Prop {
+	//Note that fields which are not stored are not available in documents retrieved from the index
   String name();
 	Store store();
 	Index index();
@@ -72,7 +73,7 @@ class User_id implements Prop {
 class User_text implements Prop {
   public String name() { return "user_text"; }
 	public Store store() {return Field.Store.YES;}
-	public Index index() {return Field.Index.NOT_ANALYZED;}
+	public Index index() {return Field.Index.ANALYZED;}
 }
 
 class Diff implements Prop {
@@ -80,6 +81,19 @@ class Diff implements Prop {
 	public Store store() {return Field.Store.NO;}
 	public Index index() {return Field.Index.ANALYZED;}
 }
+
+class Added implements Prop {
+	public String name() {return "added";}
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
+}
+
+class Removed implements Prop {
+	public String name() {return "removed";}
+	public Store store() {return Field.Store.YES;}
+	public Index index() {return Field.Index.NOT_ANALYZED;}
+}
+
 
 public class Indexer implements Runnable {
 	public static IndexWriter writer;
@@ -93,6 +107,8 @@ public class Indexer implements Runnable {
     new Minor(),
     new User_id(),
     new User_text(),
+    new Added(),
+    new Removed(),
   };
 
 	public File sourceFile = null;
