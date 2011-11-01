@@ -155,6 +155,17 @@ public class Searcher {
 	 * collected.
 	 * 
 	 */
+	private static void printResultHeading(List<Fieldable> fields) {
+		if (fields != null){
+			System.out.print("#\tScore\t");
+			Iterator<Fieldable> it = fields.iterator();
+			while (it.hasNext()) {
+				Fieldable value = it.next();
+				System.out.print(value.name() + "\t");
+			}
+			System.out.println();
+		}
+	}
 	public static void doPagingSearch(BufferedReader in,
 			IndexSearcher searcher, Query query, int hitsPerPage, boolean raw,
 			boolean interactive) throws IOException {
@@ -197,10 +208,13 @@ public class Searcher {
 				List<Fieldable> fields = doc.getFields();
 				Iterator<Fieldable> it = fields.iterator();
 				if (key != null) {
-					System.out.print((i + 1) + ".\t");
+					if (i==0){
+						printResultHeading(fields);
+					}
+					System.out.print((i + 1) + ".\t" + hits[i].score + "\t");	
 					while (it.hasNext()) {
 						Fieldable field = it.next();
-						System.out.print(field.stringValue() + ".\t");
+						System.out.print(field.stringValue() + "\t");
 					}
 					// System.out.println((i + 1) + ". " + key);
 					System.out.println();
