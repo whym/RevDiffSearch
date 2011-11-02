@@ -21,6 +21,7 @@ interface Prop {
 	Store store();
 
 	Index index();
+	
 }
 
 class Rev_id implements Prop {
@@ -80,6 +81,7 @@ class Title implements Prop {
 }
 
 class Timestamp implements Prop {
+	//TODO: convert epoch to human readable time.
 	public String name() {
 		return "timestamp";
 	}
@@ -103,7 +105,7 @@ class Comment implements Prop {
 	}
 
 	public Index index() {
-		return Field.Index.ANALYZED;
+		return Field.Index.NOT_ANALYZED;
 	}
 }
 
@@ -155,7 +157,7 @@ class Diff implements Prop {
 	}
 
 	public Store store() {
-		return Field.Store.NO;
+		return Field.Store.YES;
 	}
 
 	public Index index() {
@@ -164,6 +166,7 @@ class Diff implements Prop {
 }
 
 class Added implements Prop {
+	//TODO: Calculate length of added text
 	public String name() {
 		return "added";
 	}
@@ -178,6 +181,7 @@ class Added implements Prop {
 }
 
 class Removed implements Prop {
+	//TODO: Calculate length of removed text
 	public String name() {
 		return "removed";
 	}
@@ -237,7 +241,7 @@ public class Indexer implements Runnable {
 		final String[] line = new String[] { null };
 		final int[] linenumber = new int[] { 0 };
 
-		// initialize document
+		// Initialise document
 		for (int i = 0; i < propTypes.length; ++i) {
 			Prop proptype = propTypes[i];
 			doc.add(new Field(proptype.name(), "", proptype.store(), proptype
