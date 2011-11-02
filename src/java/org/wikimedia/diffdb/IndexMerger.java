@@ -19,14 +19,15 @@ package org.wikimedia.diffdb;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.NIOFSDirectory;
-import org.apache.lucene.store.SimpleFSDirectory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 public class IndexMerger {
@@ -36,22 +37,20 @@ public class IndexMerger {
 
 		if (args.length != 2) {
 			System.out.println("Usage: java -jar IndexMerger.jar "
-					+ "existing_indexes_dir merged_index_dir");
+					+ "merged_index_dir existing_index_dir1 existing_index_dir2 ...");
+			System.out.println(" merged_index_dir: A directory where the merged "
+                         + "index will be stored");
+			System.out.println("   e.g. merged_indexes");
 			System.out.println(" existing_indexes_dir: A directory where the "
-					+ "indexes that have to merged exist");
+                         + "indexes that have to merged exist");
 			System.out.println("   e.g. indexes/");
 			System.out.println("   e.g.         index1");
 			System.out.println("   e.g.         index2");
 			System.out.println("   e.g.         index3");
-			System.out
-			.println(" merged_index_dir: A directory where the merged "
-					+ "index will be stored");
-			System.out.println("   e.g. merged_indexes");
 			System.exit(1);
 		}
 
-		File INDEXES_DIR = new File(args[0]);
-		File INDEX_DIR = new File(args[1]);
+		File INDEX_DIR = new File(args[0]);
 
 		INDEX_DIR.mkdir();
 
@@ -59,14 +58,13 @@ public class IndexMerger {
 
 		try {
 			IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34,
-					new StandardAnalyzer(Version.LUCENE_34));
+                                                    new SimpleNGramAnalyzer(3));
 			LogDocMergePolicy lmp = new LogDocMergePolicy();
 			lmp.setMergeFactor(1000);
 			cfg.setRAMBufferSizeMB(50);
 			cfg.setMergePolicy(lmp);
 
-			Directory dir = new NIOFSDirectory(INDEX_DIR);
-			IndexWriter writer = new IndexWriter(dir, cfg);
+			IndexWriter writer = new IndexWriter(FSDirectory.open(INDEX_DIR), cfg);
 
 			// IndexWriter writer = new IndexWriter(INDEX_DIR,
 			// new StandardAnalyzer(Version.LUCENE_34),
@@ -74,20 +72,15 @@ public class IndexMerger {
 			// writer.setMergeFactor(1000);
 			// writer.setRAMBufferSizeMB(50);
 
-			Directory indexes[] = new Directory[INDEXES_DIR.list().length];
+			List<Directory> indexes = new ArrayList<Directory>();
 
-			for (int i = 0; i < INDEXES_DIR.list().length; i++) {
-				System.out.println("Adding: " + INDEXES_DIR.list()[i]);
-				SimpleFSDirectory simple_dir = new SimpleFSDirectory(
-						INDEXES_DIR);
-				System.out.println(simple_dir.toString());
-				indexes[i] = simple_dir;
-				// indexes[i] = FSDirectory.getDirectory(INDEXES_DIR
-				// .getAbsolutePath() + "/" + INDEXES_DIR.list()[i]);
+			for ( String indexdir: Arrays.asList(args).subList(1, args.length)) {
+				System.out.println("Adding: " + indexdir);
+				indexes.add(FSDirectory.open(new File(indexdir)));
 			}
 
 			System.out.print("Merging added indexes...");
-			writer.addIndexes(indexes);
+			writer.addIndexes(indexes.toArray(new Directory[indexes.size()]));
 			System.out.println("done");
 
 			System.out.print("Optimizing index...");
