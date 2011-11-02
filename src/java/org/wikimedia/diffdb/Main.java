@@ -109,3 +109,10 @@ public class Main {
 	}
 
 }
+/*
+ * Local variables:
+ * tab-width: 2
+ * c-basic-offset: 2
+ * indent-tabs-mode: t
+ * End:
+ */
