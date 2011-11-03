@@ -1,8 +1,31 @@
-<h1>You were searching for ${query}...</h1>
+<html>
+<%include file="header.html"/>
+<body>
+<h1>You were searching for ${query_str}...</h1>
 
-<%    
-for hit in hits.scoreDocs:
-	hit.score, hit.doc, hit.toString()
-	doc = searcher.doc(hit.doc)
-    print doc.get("text").encode("utf-8")
-%>
+% if results:
+	<table>
+		<tr>
+		 % for heading in headings:
+			<td class="even">${heading}</td>
+		 % endfor
+		</tr>
+
+	% for x, hit in enumerate(results):
+		% if x % 2 == 1:
+			<tr class="odd">
+		% else:
+			<tr class="even">
+		% endif
+		% for result in results[hit]:
+			<td>${results[hit][result]}</td>
+		% endfor
+		</tr>
+	% endfor
+	</table>
+% else:
+<p> There were 0 results for ${query_str}.
+% endif
+
+</body>
+</html>
