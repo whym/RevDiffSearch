@@ -1,0 +1,8 @@
+<h1>You were searching for ${query}...</h1>
+
+<%    
+for hit in hits.scoreDocs:
+	hit.score, hit.doc, hit.toString()
+	doc = searcher.doc(hit.doc)
+    print doc.get("text").encode("utf-8")
+%>
