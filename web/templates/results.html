@@ -1,6 +1,12 @@
-<html>
-<%include file="header.html"/>
-<body>
+# -*- coding: utf-8 -*-
+<%inherit file="base.html" />
+
+<%def name="head_tags()">
+ 	
+	<title>Diffindexer::results</title>
+ 	
+</%def>
+
 <h1>You were searching for ${query_str}...</h1>
 
 % if results:
@@ -27,5 +33,4 @@
 <p> There were 0 results for ${query_str}.
 % endif
 
-</body>
-</html>
+<%include file="searchform.html" />

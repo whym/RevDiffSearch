@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*-
+<%inherit file="base.html" />
 
-<html>
-<%include file="header.html"/>
-<body>
+<%def name="head_tags()">
+ 	
+	<title>Diffindexer::search</title>
+ 	
+</%def>
+
 	<form name="search" method="post">
-	${form.render()}
+		${form.render()}
 	</form>
-</body>
-
-</hmtl>
+	
