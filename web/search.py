@@ -18,7 +18,7 @@ urls = (
 )
 
 app = web.application(urls, globals())
-lookup = TemplateLookup(directories=['templates/'])
+lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
 HOST, PORT = "localhost", 9999
 
 
@@ -38,11 +38,6 @@ class index:
     def GET(self):
         search = self.searchform()
         return serve_template('index.html',form=search) 
-        #view = Template(filename='templates/index.html', lookup=lookup)
-        #buf = StringIO()
-        #ctx = Context(buf, name='index')
-        #view.render_context(ctx)
-        #print buf.getvalue()
     
     def POST(self):
         search = self.searchform()
