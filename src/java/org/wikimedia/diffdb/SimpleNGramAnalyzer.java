@@ -68,3 +68,11 @@ public class SimpleNGramAnalyzer extends Analyzer {
 	 * System.out.println(posIncr); } }
 	 */
 }
+
+/*
+ * Local variables:
+ * tab-width: 2
+ * c-basic-offset: 2
+ * indent-tabs-mode: t
+ * End:
+ */

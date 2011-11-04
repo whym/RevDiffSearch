@@ -14,7 +14,7 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.Version;
 
 public class Main {
-	private static final int NTHREDS = 10;
+	private static final int NTHREDS = 15;
 	private static final long REPORT_DURATION_MSECS = 10000L;
 	public static String indexDir = null;
 	public static String dataDir = null;
@@ -102,10 +102,17 @@ public class Main {
 			System.out.println("Writing " + writer.numDocs() + " documents.");
 
 		} finally {
+			writer.close();
 			System.err.println("Finished in "
 					+ (System.currentTimeMillis() - start) + " msecs");
-			writer.close();
 		}
 	}
 
 }
+/*
+ * Local variables:
+ * tab-width: 2
+ * c-basic-offset: 2
+ * indent-tabs-mode: t
+ * End:
+ */
