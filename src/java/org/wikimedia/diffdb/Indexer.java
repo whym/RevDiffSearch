@@ -42,7 +42,6 @@ public class Indexer implements Runnable {
 		new Prop("title",     Field.Store.YES, Field.Index.ANALYZED),
 		//TODO: convert epoch to human readable time.
 		new Prop("timestamp", Field.Store.YES, Field.Index.NOT_ANALYZED),
-		new Prop("title",     Field.Store.YES, Field.Index.ANALYZED),
 		new Prop("minor",     Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
