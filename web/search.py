@@ -2,7 +2,6 @@ import os
 import socket
 import sys
 import cPickle
-from cStringIO import StringIO
 
 import web
 from web import form
@@ -11,7 +10,8 @@ from mako.template import Template
 from mako.runtime import Context
 from mako.lookup import TemplateLookup
 
-from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
+import settings
+
 
 urls = (
 '/', 'index'        
@@ -19,7 +19,7 @@ urls = (
 
 app = web.application(urls, globals())
 lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
-HOST, PORT = "localhost", 9999
+
 
 
 def serve_template(templatename, **kwargs):
@@ -48,7 +48,7 @@ class index:
             results = self.fetch_results(query_str)
             headings = self.extract_headings(results)
             print results
-            return serve_template('results.html',query_str=query_str, results=results, headings=headings)
+            return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search)
     
     
     def extract_headings(self, results):
@@ -60,7 +60,7 @@ class index:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             # Connect to server and send data
-            sock.connect((HOST, PORT))
+            sock.connect((settings.HOST, settings.PORT))
             sock.send(query_str)
         
             # Receive data from the server and shut down
@@ -76,5 +76,8 @@ class index:
     
 
 if __name__ == '__main__':
-    app.run()
+    if settings.hostname == 'alpha':
+        application = app.wsgifunc()
+    else:
+        app.run()
     
