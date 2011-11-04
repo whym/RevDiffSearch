@@ -17,9 +17,12 @@ urls = (
 '/', 'index'        
 )
 
-app = web.application(urls, globals())
-lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
+if settings.hostname == 'production':
+    application = web.application(urls, globals()).wsgifunc()
+else:
+    application = web.application(urls, globals())
 
+lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
 
 
 def serve_template(templatename, **kwargs):
@@ -76,8 +79,5 @@ class index:
     
 
 if __name__ == '__main__':
-    if settings.hostname == 'alpha':
-        application = app.wsgifunc()
-    else:
-        app.run()
+    application.run()
     
