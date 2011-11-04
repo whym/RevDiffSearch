@@ -2,12 +2,12 @@ import SocketServer
 import os
 import cPickle
 
+import settings
 from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
 
 
 vm = initVM()
-index_dir = os.path.join('c:\\','lucene-3.4.0','index')
-index_dir = SimpleFSDirectory(File(index_dir))
+index_dir = SimpleFSDirectory(File(settings.INDEX_DIR))
 searcher = IndexSearcher(index_dir)
 
 class LuceneServer(SocketServer.BaseRequestHandler):
