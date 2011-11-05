@@ -42,6 +42,7 @@ public class Indexer implements Runnable {
 		new Prop("title",     Field.Store.YES, Field.Index.ANALYZED),
 		//TODO: convert epoch to human readable time.
 		new Prop("timestamp", Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("comment",     Field.Store.YES, Field.Index.ANALYZED),
 		new Prop("minor",     Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
@@ -59,7 +60,7 @@ public class Indexer implements Runnable {
 		// TODO Auto-generated method stub
 	}
 
-	public boolean fileReadable(File f) {
+	public static boolean fileReadable(File f) {
 		if (!f.isDirectory() && !f.isHidden() && f.exists() && f.canRead()
 				&& acceptFile(f)) {
 			return true;
@@ -68,9 +69,9 @@ public class Indexer implements Runnable {
 		}
 	}
 
-	protected boolean acceptFile(File f) {
+	protected static boolean acceptFile(File f) {
 		// TODO Auto-generated method stub
-		if (f.getName().endsWith(".txt")) {
+		if (f.getName().endsWith(".txt") || f.getName().endsWith(".tsv")) {
 			return true;
 		}
 		try {
@@ -81,14 +82,22 @@ public class Indexer implements Runnable {
 		return true;
 	}
 
-	private String[] parseDiff(String str) {
+	private static String[] parseDiff(String str) {
 		int i = str.indexOf(":");
 		int j = str.indexOf(":", i+1);
-		return new String[]{
-			str.substring(0,i),
-			str.substring(i,j),
-			str.substring(j)
-		};
+		if ( j >= str.length() - 3 ) {
+			return new String[]{
+				str.substring(0,i),
+				str.substring(i+1,j),
+				""
+			};
+		} else {
+			return new String[]{
+				str.substring(0,i),
+				str.substring(i+1,j),
+				str.substring(j+3, str.length() - 1)
+			};
+		}
 	}
 
 	private void createField(Document doc, Prop prop, String value) {
