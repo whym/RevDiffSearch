@@ -6,6 +6,8 @@ import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -35,18 +37,18 @@ class Prop {
 }
 
 public class Indexer implements Runnable {
-	private static Prop[] propTypes = new Prop[] {
+	private static final Prop[] propTypes = new Prop[] {
 		new Prop("rev_id",    Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("page_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("namespace", Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("title",     Field.Store.YES, Field.Index.ANALYZED),
-		//TODO: convert epoch to human readable time.
 		new Prop("timestamp", Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("comment",     Field.Store.YES, Field.Index.ANALYZED),
 		new Prop("minor",     Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
 	};
+	private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 	private final File sourceFile;
 	private final IndexWriter writer;
@@ -145,6 +147,7 @@ public class Indexer implements Runnable {
 							String[] p = parseDiff(props[i]);
 							("-1".equals(p[1]) ? rbuff: abuff).append(p[0] + p[1] + StringEscapeUtils.unescapeJava(p[2]) + "\t");
 						}
+						((Field)doc.getFieldable("timestamp")).setValue(formatter.format(new Date(Long.parseLong(props[4])*1000)));
 						((Field)doc.getFieldable("added")).setValue(abuff.toString());
 						((Field)doc.getFieldable("removed")).setValue(rbuff.toString());
 						((Field)doc.getFieldable("added_size")).setValue("" + abuff.length());
