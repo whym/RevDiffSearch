@@ -48,10 +48,10 @@ public class Indexer implements Runnable {
 		new Prop("user_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
 	};
-	private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 	private final File sourceFile;
 	private final IndexWriter writer;
+	private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 	public Indexer(IndexWriter writer, File f) {
 		this.sourceFile = f;
@@ -147,7 +147,7 @@ public class Indexer implements Runnable {
 							String[] p = parseDiff(props[i]);
 							("-1".equals(p[1]) ? rbuff: abuff).append(p[0] + p[1] + StringEscapeUtils.unescapeJava(p[2]) + "\t");
 						}
-						((Field)doc.getFieldable("timestamp")).setValue(formatter.format(new Date(Long.parseLong(props[4])*1000)));
+						((Field)doc.getFieldable("timestamp")).setValue(formatter.format(new Date(Long.parseLong(props[4])*1000L)));
 						((Field)doc.getFieldable("added")).setValue(abuff.toString());
 						((Field)doc.getFieldable("removed")).setValue(rbuff.toString());
 						((Field)doc.getFieldable("added_size")).setValue("" + abuff.length());
