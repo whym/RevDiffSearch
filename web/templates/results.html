@@ -19,12 +19,12 @@
 
 	% for x, hit in enumerate(results):
 		% if x % 2 == 1:
-			<tr class="odd">
-		% else:
 			<tr class="even">
+		% else:
+			<tr class="odd">
 		% endif
-		% for result in results[hit]:
-			<td>${results[hit][result]}</td>
+		% for heading in headings:
+			<td>${results[hit][heading]}</td>
 		% endfor
 		</tr>
 	% endfor
