@@ -30,7 +30,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         for field in fields:
             #print dir(field)
             #headers.append(field.stringValue())
-            headers.append(field.name)
+            headers.append(field.name())
         print headers
         return headers
 
