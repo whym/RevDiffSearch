@@ -25,7 +25,12 @@ class LuceneServer(SocketServer.BaseRequestHandler):
     """
 
     def getheaders(self, doc):
-        headers = doc.getFields()
+        headers = []
+        fields = doc.getFields()
+        for field in fields:
+            print dir(field)
+            headers.append(field.stringValue())
+        print headers
         return headers
 
     def serialize(self, hits):
