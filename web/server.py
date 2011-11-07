@@ -50,16 +50,16 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         # we can now use e.g. readline() instead of raw recv() calls
         self.data = self.request.recv(1024).strip()
         #print "{} wrote:".format(self.client_address[0])
-        #print self.data
+        print self.data
         # just send back the same data, but upper-cased
         
-        MAX = 1000
+        MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
-        query = QueryParser(Version.LUCENE_34, 'contents', analyzer).parse(self.data)
+        query = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(self.data)
         
         hits = searcher.search(query, MAX)
-        if settings.DEBUG:
-            print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
+        #if settings.DEBUG:
+        print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
         serialized = self.serialize(hits)
         self.request.send(serialized)
 
