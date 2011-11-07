@@ -2,6 +2,7 @@ import os
 import socket
 import sys
 import cPickle
+import cStringIO
 
 import web
 from web import form
@@ -69,8 +70,17 @@ class index:
             sock.send(query_str)
         
             # Receive data from the server and shut down
-            received = sock.recv(1024)
-            results = cPickle.loads(received)
+            buffer = cStringIO.StringIO()
+            received = sock.recv(4096)
+            done = False
+            while not done:
+                more = sock.recv(4096)
+                if not more:
+                    done = True
+                else:
+                    buffer.write(more)
+            
+            results = cPickle.loads(buffer.getvalue())
             #print "Received: {}".format(results)
         finally:
             sock.close()
