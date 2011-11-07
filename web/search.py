@@ -70,7 +70,7 @@ class index:
         
             # Receive data from the server and shut down
             buffer = cStringIO.StringIO()
-            received = sock.recv(4096)
+            buffer = sock.recv(4096)
             done = False
             while not done:
                 more = sock.recv(4096)
@@ -78,7 +78,7 @@ class index:
                     done = True
                 else:
                     buffer.write(more)
-            
+            print buffer.getvalue()
             results = cPickle.loads(buffer.getvalue())
             #print "Received: {}".format(results)
         finally:
