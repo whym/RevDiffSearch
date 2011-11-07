@@ -70,7 +70,7 @@ class index:
         
             # Receive data from the server and shut down
             buffer = cStringIO.StringIO()
-            buffer = sock.recv(4096)
+            buffer.write(sock.recv(4096))
             done = False
             while not done:
                 more = sock.recv(4096)
