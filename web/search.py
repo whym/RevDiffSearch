@@ -18,7 +18,6 @@ urls = (
 )
 
 
-app = web.application(urls, globals())
 lookup = TemplateLookup(directories=['templates/'])
 if settings.HOSTNAME == 'production':
     application = web.application(urls, globals()).wsgifunc()
