@@ -12,24 +12,19 @@ from mako.lookup import TemplateLookup
 
 import settings
 
-
-import settings
-
 urls = (
 '/', 'index'        
 )
 
-<<<<<<< HEAD
+
 app = web.application(urls, globals())
 lookup = TemplateLookup(directories=['templates/'])
-=======
-if settings.hostname == 'production':
+if settings.HOSTNAME == 'production':
     application = web.application(urls, globals()).wsgifunc()
 else:
-    application = web.application(urls, globals())
+    app = web.application(urls, globals())
 
 lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
->>>>>>> 5e19f843dcb117296a65a5df26fd381cff84762c
 
 
 def serve_template(templatename, **kwargs):
@@ -86,5 +81,6 @@ class index:
     
 
 if __name__ == '__main__':
-    application.run()
+    if app:
+        app.run()
     
