@@ -13,7 +13,7 @@
 	<table>
 		<tr>
 		 % for heading in headings:
-			<td class="even">${heading}</td>
+			<td class="even"><h3>${heading}</h3></td>
 		 % endfor
 		</tr>
 
@@ -23,10 +23,14 @@
 		% else:
 			<tr class="odd">
 		% endif
-		% for heading in headings:
-			<td>${results[hit][heading]}</td>
-		% endfor
-		</tr>
+			% for heading in headings:
+				% if heading in links:
+					<td><a href="http://en.wikipedia.org/${links[heading]}">${results[hit][heading]}</a></td>
+				% else:
+					<td>${results[hit][heading]}</td>
+				% endif
+			% endfor
+			</tr>
 	% endfor
 	</table>
 % else:

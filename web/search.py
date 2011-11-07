@@ -33,6 +33,11 @@ def serve_template(templatename, **kwargs):
 
 
 class index:
+    def __init__(self, *args, **kwargs):
+        self.links= {'rev_id':'w/index.php?oldid',
+                     'title':'wiki/',
+                     'user_text':'wiki/User:'}
+        
     def searchform(self):
         search = form.Form(
             form.Textarea('query', form.notnull),
@@ -53,7 +58,7 @@ class index:
             results = self.fetch_results(query_str)
             headings = self.extract_headings(results)
             print results
-            return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search)
+            return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search, links=self.links)
     
     
     def extract_headings(self, results):
