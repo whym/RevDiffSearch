@@ -28,8 +28,9 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         headers = []
         fields = doc.getFields()
         for field in fields:
-            print dir(field)
-            headers.append(field.stringValue())
+            #print dir(field)
+            #headers.append(field.stringValue())
+            headers.append(field.name)
         print headers
         return headers
 
@@ -49,6 +50,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
             results[hit.doc]['score'] = hit.score
             
             for header in results['headings']:
+                print header, doc.get(header)
                 results[hit.doc][header] = doc.get(header)
         return cPickle.dumps(results)
 
