@@ -30,14 +30,15 @@ class LuceneServer(SocketServer.BaseRequestHandler):
 
     def serialize(self, hits):
         results = {}
+        results['headings'] =[]
+        
         for x, hit in enumerate(hits.scoreDocs):
             doc = searcher.doc(hit.doc)
             if x == 0:
-                results['headings'] =getheaders(doc)
+                results['headings'] =self.getheaders(doc)
             
             #print dir(doc)
             #print doc.getFields(), doc.getValues("contents")
-            #print doc, doc.toString()
             #doc.get('contents') #.encode("utf-8")
             results[hit.doc] = {}
             results[hit.doc]['score'] = hit.score
