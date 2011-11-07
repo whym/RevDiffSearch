@@ -9,6 +9,8 @@ from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirecto
 
 
 vm = initVM()
+print settings.INDEX_DIR
+
 index_dir = SimpleFSDirectory(File(settings.INDEX_DIR))
 searcher = IndexSearcher(index_dir)
 logging.basicConfig(filename='diffdb.log',level=logging.DEBUG)
