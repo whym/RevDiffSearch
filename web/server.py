@@ -2,13 +2,15 @@ import SocketServer
 import os
 import cPickle
 
+import settings
+
 from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
 
 
 vm = initVM()
-index_dir = os.path.join('c:\\','lucene-3.4.0','index')
-index_dir = SimpleFSDirectory(File(index_dir))
+index_dir = SimpleFSDirectory(File(settings.INDEX_DIR))
 searcher = IndexSearcher(index_dir)
+logging.basicConfig(filename='diffdb.log',level=logging.DEBUG)
 
 class LuceneServer(SocketServer.BaseRequestHandler):
     """
@@ -19,18 +21,26 @@ class LuceneServer(SocketServer.BaseRequestHandler):
     client.
     """
 
+    def getheaders(self, doc):
+        headers = doc.getFields()
+        return headers
+
     def serialize(self, hits):
         results = {}
-        results['headings'] = ['score', 'contents'] #hardcoded not ideal 
-        for hit in hits.scoreDocs:
+        for x, hit in enumerate(hits.scoreDocs):
             doc = searcher.doc(hit.doc)
+            if x == 0:
+                results['headings'] =getheaders(doc)
+            
             #print dir(doc)
             #print doc.getFields(), doc.getValues("contents")
             #print doc, doc.toString()
-            doc.get('contents') #.encode("utf-8")
+            #doc.get('contents') #.encode("utf-8")
             results[hit.doc] = {}
             results[hit.doc]['score'] = hit.score
-            results[hit.doc]['contents'] = doc.get('contents')
+            
+            for header in results['headings']:
+                results[hit.doc][header] = doc.get(header)
         return cPickle.dumps(results)
 
     def handle(self):
@@ -46,17 +56,16 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         analyzer = StandardAnalyzer(Version.LUCENE_34)
         query = QueryParser(Version.LUCENE_34, 'contents', analyzer).parse(self.data)
         
-        hits = searcher.search(query, MAX)         
-        print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
+        hits = searcher.search(query, MAX)
+        if settings.DEBUG:
+            print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
         serialized = self.serialize(hits)
         self.request.send(serialized)
 
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
-    
     # Create the server, binding to localhost on port 9999
-    server = SocketServer.TCPServer((HOST, PORT), LuceneServer)
+    server = SocketServer.TCPServer((settings.HOST, settings.PORT), LuceneServer)
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     server.serve_forever()

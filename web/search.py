@@ -13,13 +13,14 @@ from mako.lookup import TemplateLookup
 
 from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
 
+import settings
+
 urls = (
 '/', 'index'        
 )
 
 app = web.application(urls, globals())
 lookup = TemplateLookup(directories=['templates/'])
-HOST, PORT = "localhost", 9999
 
 
 def serve_template(templatename, **kwargs):
@@ -65,7 +66,7 @@ class index:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             # Connect to server and send data
-            sock.connect((HOST, PORT))
+            sock.connect((settings.HOST, settings.PORT))
             sock.send(query_str)
         
             # Receive data from the server and shut down
