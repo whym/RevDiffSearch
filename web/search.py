@@ -2,7 +2,6 @@ import os
 import socket
 import sys
 import cPickle
-from cStringIO import StringIO
 
 import web
 from web import form
@@ -11,7 +10,8 @@ from mako.template import Template
 from mako.runtime import Context
 from mako.lookup import TemplateLookup
 
-from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
+import settings
+
 
 import settings
 
@@ -19,8 +19,17 @@ urls = (
 '/', 'index'        
 )
 
+<<<<<<< HEAD
 app = web.application(urls, globals())
 lookup = TemplateLookup(directories=['templates/'])
+=======
+if settings.hostname == 'production':
+    application = web.application(urls, globals()).wsgifunc()
+else:
+    application = web.application(urls, globals())
+
+lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
+>>>>>>> 5e19f843dcb117296a65a5df26fd381cff84762c
 
 
 def serve_template(templatename, **kwargs):
@@ -39,11 +48,6 @@ class index:
     def GET(self):
         search = self.searchform()
         return serve_template('index.html',form=search) 
-        #view = Template(filename='templates/index.html', lookup=lookup)
-        #buf = StringIO()
-        #ctx = Context(buf, name='index')
-        #view.render_context(ctx)
-        #print buf.getvalue()
     
     def POST(self):
         search = self.searchform()
@@ -54,7 +58,7 @@ class index:
             results = self.fetch_results(query_str)
             headings = self.extract_headings(results)
             print results
-            return serve_template('results.html',query_str=query_str, results=results, headings=headings)
+            return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search)
     
     
     def extract_headings(self, results):
@@ -82,5 +86,5 @@ class index:
     
 
 if __name__ == '__main__':
-    app.run()
+    application.run()
     

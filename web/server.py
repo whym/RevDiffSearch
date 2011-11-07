@@ -3,7 +3,10 @@ import os
 import cPickle
 
 import settings
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5e19f843dcb117296a65a5df26fd381cff84762c
 from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
 
 

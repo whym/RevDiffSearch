@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
+<%inherit file="base.html" />
 
-<html>
-<%include file="header.html"/>
-<body>
-	<form name="search" method="post">
-	${form.render()}
-	</form>
-</body>
+<%def name="head_tags()">
+ 	
+	<title>DiffSearchers::search</title>
+ 	
+</%def>
 
-</hmtl>
+<h1>DiffSearcher: the ultimate Wiki blame tool</h1>
+
+<%include file="searchform.html" />

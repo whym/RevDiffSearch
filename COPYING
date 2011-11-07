@@ -5,7 +5,7 @@ distributed under the licenses shown below respectively.
 src/java/org/wikimedia/diffdb/IndexMerger.java
 
 Author: Asterios Katsifodimos (http://www.asteriosk.gr)
-http://blog.asteriosk.gr/2009/03/31/merging-multiple-lucene-indexes/
+Source: http://blog.asteriosk.gr/2009/03/31/merging-multiple-lucene-indexes/
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 -----------
 src/java/org/wikimedia/diffdb/Searcher.java
+
+Source: https://svn.apache.org/repos/asf/lucene/dev/trunk/lucene/contrib/demo/src/java/org/apache/lucene/demo/SearchFiles.java
 
  Copyright 2011 Apache Software Foundation
 

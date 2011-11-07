@@ -6,214 +6,63 @@ import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Index;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.commons.lang.StringEscapeUtils;
 
-interface Prop {
+class Prop {
 	// Note that fields which are not stored are not available in documents
 	// retrieved from the index
-	String name();
-
-	Store store();
-
-	Index index();
+	private final String name;
+	private final Store store;
+	private final Index index;
+	protected Prop() {
+		this("", Field.Store.NO, Field.Index.NOT_ANALYZED);
+	}
+	public Prop(String name, Store store, Index index) {
+		this.name = name;
+		this.store = store;
+		this.index = index;
+	}
+	public String name() { return this.name; }
+	public Store store() { return this.store; }
+	public Index index() { return this.index; }
 	
 }
 
-class Rev_id implements Prop {
-	public String name() {
-		return "rev_id";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
-class Page_id implements Prop {
-	public String name() {
-		return "page_id";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
-class Namespace implements Prop {
-	public String name() {
-		return "namespace";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.ANALYZED;
-	}
-}
-
-class Title implements Prop {
-	public String name() {
-		return "title";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.ANALYZED;
-	}
-}
-
-class Timestamp implements Prop {
-	//TODO: convert epoch to human readable time.
-	public String name() {
-		return "timestamp";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
-class Comment implements Prop {
-	public String name() {
-		return "comment";
-	}
-
-	public Store store() {
-		return Field.Store.NO;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
-class Minor implements Prop {
-	public String name() {
-		return "minor";
-	}
-
-	public Store store() {
-		return Field.Store.NO;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
-class User_id implements Prop {
-	public String name() {
-		return "user_id";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
-class User_text implements Prop {
-	public String name() {
-		return "user_text";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.ANALYZED;
-	}
-}
-
-class Diff implements Prop {
-	public String name() {
-		return "diff";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.ANALYZED;
-	}
-}
-
-class Added implements Prop {
-	//TODO: Calculate length of added text
-	public String name() {
-		return "added";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
-class Removed implements Prop {
-	//TODO: Calculate length of removed text
-	public String name() {
-		return "removed";
-	}
-
-	public Store store() {
-		return Field.Store.YES;
-	}
-
-	public Index index() {
-		return Field.Index.NOT_ANALYZED;
-	}
-}
-
 public class Indexer implements Runnable {
-	public static IndexWriter writer;
-	private static Prop[] propTypes = new Prop[] { new Rev_id(), new Page_id(),
-			new Namespace(), new Title(), new Timestamp(), new Comment(),
-			new Minor(), new User_id(), new User_text(), new Added(),
-			new Removed(), };
+	private static final Prop[] propTypes = new Prop[] {
+		new Prop("rev_id",    Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("page_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("namespace", Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("title",     Field.Store.YES, Field.Index.ANALYZED),
+		new Prop("timestamp", Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("comment",     Field.Store.YES, Field.Index.ANALYZED),
+		new Prop("minor",     Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("user_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
+	};
 
-	public File sourceFile = null;
+	private final File sourceFile;
+	private final IndexWriter writer;
+	private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 	public Indexer(IndexWriter writer, File f) {
 		this.sourceFile = f;
-		Indexer.writer = writer;
+		this.writer = writer;
 	}
 
 	synchronized public void close() throws IOException {
 		// TODO Auto-generated method stub
 	}
 
-	public boolean fileReadable(File f) {
+	public static boolean fileReadable(File f) {
 		if (!f.isDirectory() && !f.isHidden() && f.exists() && f.canRead()
 				&& acceptFile(f)) {
 			return true;
@@ -222,9 +71,9 @@ public class Indexer implements Runnable {
 		}
 	}
 
-	protected boolean acceptFile(File f) {
+	protected static boolean acceptFile(File f) {
 		// TODO Auto-generated method stub
-		if (f.getName().endsWith(".txt")) {
+		if (f.getName().endsWith(".txt") || f.getName().endsWith(".tsv")) {
 			return true;
 		}
 		try {
@@ -235,6 +84,30 @@ public class Indexer implements Runnable {
 		return true;
 	}
 
+	private static String[] parseDiff(String str) {
+		int i = str.indexOf(":");
+		int j = str.indexOf(":", i+1);
+		if ( j >= str.length() - 3 ) {
+			return new String[]{
+				str.substring(0,i),
+				str.substring(i+1,j),
+				""
+			};
+		} else {
+			return new String[]{
+				str.substring(0,i),
+				str.substring(i+1,j),
+				str.substring(j+3, str.length() - 1)
+			};
+		}
+	}
+
+	private void createField(Document doc, Prop prop, String value) {
+		doc.add(new Field(prop.name(), value, prop.store(), prop.index()));
+	}
+	private void setField(Document doc, Prop prop, String value) {
+	}
+
 	protected Iterable<Document> getDocument(Reader reader_) throws IOException {
 		final Document doc = new Document();
 		final BufferedReader reader = new BufferedReader(reader_);
@@ -243,14 +116,15 @@ public class Indexer implements Runnable {
 
 		// Initialise document
 		for (int i = 0; i < propTypes.length; ++i) {
-			Prop proptype = propTypes[i];
-			doc.add(new Field(proptype.name(), "", proptype.store(), proptype
-					.index()));
+			createField(doc, propTypes[i], "");
 		}
-		final Prop diff = new Diff();
-		doc.add(new Field(diff.name(), "", diff.store(), diff.index()));
+		createField(doc, new Prop("added_size",   Field.Store.YES, Field.Index.NOT_ANALYZED), "");
+		createField(doc, new Prop("removed_size", Field.Store.YES, Field.Index.NOT_ANALYZED), "");
+		createField(doc, new Prop("added",   Field.Store.YES, Field.Index.ANALYZED), "");
+		createField(doc, new Prop("removed", Field.Store.YES, Field.Index.ANALYZED), "");
 
-		final StringBuffer buff = new StringBuffer("");
+		final StringBuffer abuff = new StringBuffer("");
+		final StringBuffer rbuff = new StringBuffer("");
 
 		return new Iterable<Document>() {
 			public Iterator<Document> iterator() {
@@ -266,12 +140,18 @@ public class Indexer implements Runnable {
 							// System.err.println(propTypes[i] + ": " +
 							// props[i]);//!
 						}
-						buff.delete(0, buff.length());
+						// extract additions and removals and store them in the buffers
+						abuff.delete(0, abuff.length());
+						rbuff.delete(0, rbuff.length());
 						for (int i = propTypes.length; i < props.length; ++i) {
-							buff.append(props[i] + "\n");
+							String[] p = parseDiff(props[i]);
+							("-1".equals(p[1]) ? rbuff: abuff).append(p[0] + p[1] + StringEscapeUtils.unescapeJava(p[2]) + "\t");
 						}
-						Field field = (Field) doc.getFieldable(diff.name());
-						field.setValue(buff.toString());
+						((Field)doc.getFieldable("timestamp")).setValue(formatter.format(new Date(Long.parseLong(props[4])*1000L)));
+						((Field)doc.getFieldable("added")).setValue(abuff.toString());
+						((Field)doc.getFieldable("removed")).setValue(rbuff.toString());
+						((Field)doc.getFieldable("added_size")).setValue("" + abuff.length());
+						((Field)doc.getFieldable("removed_size")).setValue("" + rbuff.length());
 						line[0] = null;
 						if (props.length < propTypes.length) {
 							System.err.println("line " + linenumber[0]

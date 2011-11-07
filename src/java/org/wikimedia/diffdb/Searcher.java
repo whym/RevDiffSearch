@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.commons.lang.StringEscapeUtils;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
@@ -43,6 +44,14 @@ public class Searcher {
 	private Searcher() {
 	}
 
+  private static String truncateString(String str, int max) {
+    if ( str.length() + 3 > max ) {
+      return str.substring(0, max-3) + "...";
+    } else {
+      return str;
+    }
+  }
+
 	/** Simple command-line based search demo. */
 	public static void main(String[] args) throws Exception {
 		String usage = "Usage:\tjava "
@@ -55,7 +64,7 @@ public class Searcher {
 		}
 
 		String index = "index";
-		String field = "diff";
+		String field = "added";
 		String queries = null;
 		int repeat = 0;
 		boolean raw = false;
@@ -214,7 +223,7 @@ public class Searcher {
 					System.out.print((i + 1) + ".\t" + hits[i].score + "\t");	
 					while (it.hasNext()) {
 						Fieldable field = it.next();
-						System.out.print(field.stringValue() + "\t");
+						System.out.print(StringEscapeUtils.escapeJava(truncateString(field.stringValue(), 100)) + "\t");
 					}
 					// System.out.println((i + 1) + ". " + key);
 					System.out.println();
