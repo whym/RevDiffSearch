@@ -85,6 +85,8 @@ class index:
                     buffer.write(more)
             print buffer.getvalue()
             results = cPickle.loads(buffer.getvalue())
+        except Exception,e:
+            print e 
             #print "Received: {}".format(results)
         finally:
             sock.close()
