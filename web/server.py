@@ -51,7 +51,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
             
             for header in results['headings']:
                 print header, doc.get(header)
-                results[hit.doc][header] = unicode(doc.get(header))
+                results[hit.doc][header] = str(doc.get(header))
         return cPickle.dumps(results)
 
     def handle(self):
