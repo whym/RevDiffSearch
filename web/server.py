@@ -34,7 +34,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         headers = []
         fields = doc.getFields()
         for field in fields:
-            headers.append(field.name)
+            headers.append(field.name())
         print headers
         return headers
     
