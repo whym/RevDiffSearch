@@ -34,7 +34,7 @@ def serve_template(templatename, **kwargs):
 
 class index:
     def __init__(self, *args, **kwargs):
-        self.links= {'rev_id':'w/index.php?oldid=',
+        self.links= {'rev_id':'w/index.php?diff=',
                      'title':'wiki/',
                      'user_text':'wiki/User:'}
         
