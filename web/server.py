@@ -34,6 +34,23 @@ class LuceneServer(SocketServer.BaseRequestHandler):
             headers.append(field.name())
         print headers
         return headers
+    
+    def isodd(self, num):
+        return num & 1 and True or False
+    
+    def construct_ngrams(self, data):
+        words = data.split(':')
+        ngrams = []
+        if len(words) == 1:
+            ngrams.append(self.gen_ngrams(words))
+        else:
+            for x in xrange(len(words)):
+                if isodd(x):
+                    ngrams.append(self.gen_ngrams(words[x]))
+            for x in xrange(len(words)):
+                if not isodd(x):
+                    ngrams.insert(x*2, words[x])
+        return ngrams
 
     def gen_ngrams(self, word, n=3):
         wlen = len(word)
@@ -82,10 +99,11 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         
         MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
-        self.data = self.gen_ngrams(self.data)
-        query = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(self.data)
-        print query
+        self.data = self.construct_ngrams(self.data)
+        
         try:
+            query = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(self.data)
+            print query
             hits = searcher.search(query, MAX)
             #if settings.DEBUG:
             print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
