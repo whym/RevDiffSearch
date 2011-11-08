@@ -6,7 +6,7 @@ import cgi
 
 import settings
 
-from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
+from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM, JavaError
 
 
 vm = initVM()
@@ -34,6 +34,17 @@ class LuceneServer(SocketServer.BaseRequestHandler):
             headers.append(field.name)
         print headers
         return headers
+
+    def gen_ngrams(self, word, n=3):
+        wlen = len(word)
+        if wlen <= n:
+            return word
+        i = 0
+        ret = []
+        while i < wlen - n + 1:
+            ret.append(word[i:i+n])
+            i += 1
+        return ' '.join(ret)
 
     def serialize(self, hits):
         results = {}
@@ -71,12 +82,16 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         
         MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
+        self.data = self.gen_ngrams(self.data)
         query = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(self.data)
-        
-        hits = searcher.search(query, MAX)
-        #if settings.DEBUG:
-        print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
-        serialized = self.serialize(hits)
+        print query
+        try:
+            hits = searcher.search(query, MAX)
+            #if settings.DEBUG:
+            print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
+            serialized = self.serialize(hits)
+        except JavaError:
+            serialized = cPickle.dumps({})
         self.request.send(serialized)
 
 
