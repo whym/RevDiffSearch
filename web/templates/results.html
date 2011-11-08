@@ -25,7 +25,7 @@
 		% endif
 			% for heading in headings:
 				% if heading in links:
-					<td><a href="http://en.wikipedia.org/${links[heading]}">${results[hit][heading]}</a></td>
+					<td><a href="http://en.wikipedia.org/${links[heading]}${results[hit][heading]}">${results[hit][heading]}</a></td>
 				% else:
 					<td>${results[hit][heading]}</td>
 				% endif
