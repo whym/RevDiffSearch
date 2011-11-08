@@ -60,6 +60,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
                 value = ngrams[field]
             fields.append(field)
             values.append(value)
+        values = ' '.join(values)
         #ngrams = ''.join(itertools.chain(*tokens))
         
         return fields, values
@@ -119,7 +120,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         fields, values = self.parse_query(self.data)
         
         try:
-            query = MultiFieldQueryParser(Version.LUCENE_34, fields, analyzer).parse(values)
+            queryparser = MultiFieldQueryParser(Version.LUCENE_34, fields, analyzer).parse(values)
             print query
             hits = searcher.search(query, MAX)
             #if settings.DEBUG:
