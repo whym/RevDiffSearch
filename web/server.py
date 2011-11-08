@@ -8,7 +8,7 @@ import re
 
 import settings
 
-from lucene import StandardAnalyzer, File, MultiFieldQueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM, JavaError
+from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM, JavaError
 
 
 vm = initVM()
@@ -117,14 +117,14 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         query = self.parse_query(self.data)
         
         try:
-            qp = QueryParser(Version.LUCENE_34, fields, analyzer).parse(query)
+            qp = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(query)
             print query
             hits = searcher.search(query, MAX)
             #if settings.DEBUG:
             print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
             serialized = self.serialize(hits)
-        except JavaError:
-            serialized = cPickle.dumps({})
+        except JavaError, e:
+            serialized = cPickle.dumps(e)
         self.request.send(serialized)
 
 
