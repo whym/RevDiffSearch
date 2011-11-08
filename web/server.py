@@ -49,7 +49,8 @@ class LuceneServer(SocketServer.BaseRequestHandler):
                     ngrams.append(self.gen_ngrams(words[x]))
             for x in xrange(len(words)):
                 if not self.isodd(x):
-                    ngrams.insert(x*2, ':%s'% words[x])
+                    ngrams.insert(x*2, '%s:'% words[x])
+        ngrams = ' '.join(ngrams)
         return ngrams
 
     def gen_ngrams(self, word, n=3):
