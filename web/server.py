@@ -87,11 +87,13 @@ class LuceneServer(SocketServer.BaseRequestHandler):
             for header in results['headings']:
                 print header, doc.get(header)
                 value = doc.get(header)
-#                if header == 'title':
-#                    value = value.replace("'",'')
-                if header == 'diff':
+                if header == 'title':
+                    value = eval("value")
+                elif header == 'user_text':
+                    value = eval("value")
+                elif header == 'diff':
                     value = cgi.escape(value, quote=True)
-                results[hit.doc][header] = value.encode('raw_unicode_escape').decode('utf-8')
+                results[hit.doc][header] = value
         return cPickle.dumps(results)
 
     def handle(self):
