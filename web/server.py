@@ -53,13 +53,16 @@ class LuceneServer(SocketServer.BaseRequestHandler):
                 value = '%s ' % value
             ngrams[field] = value
         
+        fields, values = [],[]
         for x,token in enumerate(tokens):
             field, value = token.split(':')
             if field in ngrams:
-                tokens[x] = '%s:%s' % (field, ''.join(ngrams[field]))
+                value = ngrams[field]
+            fields.append(field)
+            values.append(value)
+        #ngrams = ''.join(itertools.chain(*tokens))
         
-        ngrams = ''.join(itertools.chain(*tokens))
-        return ngrams
+        return fields, values
 
     def gen_ngrams(self, word, n=3):
         wlen = len(word)
@@ -113,10 +116,10 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         
         MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
-        self.data = self.parse_query(self.data)
+        fields, values = self.parse_query(self.data)
         
         try:
-            query = MultiFieldQueryParser(Version.LUCENE_34, 'diff', analyzer).parse(self.data)
+            query = MultiFieldQueryParser(Version.LUCENE_34, fields, analyzer).parse(values)
             print query
             hits = searcher.search(query, MAX)
             #if settings.DEBUG:
