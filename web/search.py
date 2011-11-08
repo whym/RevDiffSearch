@@ -57,7 +57,7 @@ class index:
             query_str = search['query'].value
             results = self.fetch_results(query_str)
             headings = self.extract_headings(results)
-            print results
+            print 'About to send results to browser...'
             return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search, links=self.links)
     
     
@@ -83,13 +83,13 @@ class index:
                     done = True
                 else:
                     buffer.write(more)
-            print buffer.getvalue()
+            #print buffer.getvalue()
             results = cPickle.loads(buffer.getvalue())
         except Exception,e:
             print e 
-            #print "Received: {}".format(results)
         finally:
             sock.close()
+        
         return results
         
         #print "Sent:     {}".format(query_str)
