@@ -45,10 +45,10 @@ class LuceneServer(SocketServer.BaseRequestHandler):
             ngrams.append(self.gen_ngrams(words))
         else:
             for x in xrange(len(words)):
-                if isodd(x):
+                if self.isodd(x):
                     ngrams.append(self.gen_ngrams(words[x]))
             for x in xrange(len(words)):
-                if not isodd(x):
+                if not self.isodd(x):
                     ngrams.insert(x*2, words[x])
         return ngrams
 
