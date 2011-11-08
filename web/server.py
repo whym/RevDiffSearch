@@ -18,7 +18,7 @@ index_dir = SimpleFSDirectory(File(settings.INDEX_DIR))
 searcher = IndexSearcher(index_dir)
 logging.basicConfig(filename='diffdb.log',level=logging.DEBUG)
 
-terms= re.compile('(\w[a-z0-9]*:[a-z0-9\s]*(?![a-z\:]))', re.IGNORECASE)
+terms= re.compile('(\w[a-z0-9\_]*:[a-z0-9\s]*(?![a-z\:]))', re.IGNORECASE)
 ngram_fields = ['diff', 'title', 'user_text']
 
 class LuceneServer(SocketServer.BaseRequestHandler):
