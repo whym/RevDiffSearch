@@ -34,8 +34,6 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         headers = []
         fields = doc.getFields()
         for field in fields:
-            #print dir(field)
-            #headers.append(field.stringValue())
             headers.append(field.name())
         print headers
         return headers
@@ -47,7 +45,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         for token in tokens:
             field, value = token.split(':')
             if field in ngram_fields:
-                value = gen_ngrams(value)
+                value = self.gen_ngrams(value)
                 value = ['%s ' % val for val in value]
             else:
                 value = '%s ' % value
