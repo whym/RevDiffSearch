@@ -3,6 +3,7 @@ import os
 import cPickle
 import logging
 import cgi
+import itertools
 
 import settings
 
@@ -47,10 +48,12 @@ class LuceneServer(SocketServer.BaseRequestHandler):
             for x in xrange(len(words)):
                 if self.isodd(x):
                     ngrams.append(self.gen_ngrams(words[x]))
-            for x in xrange(len(words)):
-                if not self.isodd(x):
-                    ngrams.insert(x*2, '%s:'% words[x])
-        ngrams = ' '.join(ngrams)
+            for x in xrange(len(ngrams)):
+                tokens = ngrams[x]
+                for y in xrange(len(tokens)):
+                    tokens.insert(y*2, '%s:'% words[x])
+                ngrams[x] = tokens
+        ngrams = ' '.join(itertools.chain(*ngrams))
         return ngrams
 
     def gen_ngrams(self, word, n=3):
@@ -62,7 +65,8 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         while i < wlen - n + 1:
             ret.append(word[i:i+n])
             i += 1
-        return ' '.join(ret)
+        #return ' '.join(ret)
+        return ret
 
     def serialize(self, hits):
         results = {}
