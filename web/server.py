@@ -4,10 +4,11 @@ import cPickle
 import logging
 import cgi
 import itertools
+import re
 
 import settings
 
-from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM, JavaError
+from lucene import StandardAnalyzer, File, MultiFieldQueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM, JavaError
 
 
 vm = initVM()
@@ -16,6 +17,9 @@ print settings.INDEX_DIR
 index_dir = SimpleFSDirectory(File(settings.INDEX_DIR))
 searcher = IndexSearcher(index_dir)
 logging.basicConfig(filename='diffdb.log',level=logging.DEBUG)
+
+terms= re.compile('(\w[a-z0-9]*:[a-z0-9\s]*(?![a-z\:]))', re.IGNORECASE)
+ngram_fields = ['diff', 'title', 'user_text']
 
 class LuceneServer(SocketServer.BaseRequestHandler):
     """
@@ -36,25 +40,25 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         print headers
         return headers
     
-    def isodd(self, num):
-        return num & 1 and True or False
-    
-    def construct_ngrams(self, data):
-        words = data.split(':')
-        ngrams = []
-        if len(words) == 1:
-            ngrams.append(self.gen_ngrams(words[0]))
-        else:
-            for x in xrange(len(words)):
-                if self.isodd(x):
-                    ngrams.append(self.gen_ngrams(words[x]))
-            for x in xrange(len(ngrams)):
-                tokens = ngrams[x]
-                tokens = ['%s ' % token for token in tokens]
-                for y in xrange(len(tokens)):
-                    tokens.insert(y*2, '%s:'% words[x])
-                ngrams[x] = tokens
-        ngrams = ''.join(itertools.chain(*ngrams))
+    def parse_query(self, data):
+        tokens = re.findall(terms, data)
+        ngrams = {}
+
+        for token in tokens:
+            field, value = token.split(':')
+            if field in ngram_fields:
+                value = gen_ngrams(value)
+                value = ['%s ' % val for val in value]
+            else:
+                value = '%s ' % value
+            ngrams[field] = value
+        
+        for x,token in enumerate(tokens):
+            field, value = token.split(':')
+            if field in ngrams:
+                tokens[x] = '%s:%s' % (field, ''.join(ngrams[field]))
+        
+        ngrams = ''.join(itertools.chain(*tokens))
         return ngrams
 
     def gen_ngrams(self, word, n=3):
@@ -109,10 +113,10 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         
         MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
-        self.data = self.construct_ngrams(self.data)
+        self.data = self.parse_query(self.data)
         
         try:
-            query = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(self.data)
+            query = MultiFieldQueryParser(Version.LUCENE_34, 'diff', analyzer).parse(self.data)
             print query
             hits = searcher.search(query, MAX)
             #if settings.DEBUG:
