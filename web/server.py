@@ -88,9 +88,11 @@ class LuceneServer(SocketServer.BaseRequestHandler):
                 print header, doc.get(header)
                 value = doc.get(header)
                 if header == 'title':
-                    value = eval("value")
+                    value = "%s" % value
+                    value = eval(value)
                 elif header == 'user_text':
-                    value = eval("value")
+                    value = "%s" % value
+                    value = eval(value)
                 elif header == 'diff':
                     value = cgi.escape(value, quote=True)
                 results[hit.doc][header] = value
