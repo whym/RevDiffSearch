@@ -43,7 +43,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         words = data.split(':')
         ngrams = []
         if len(words) == 1:
-            ngrams.append(self.gen_ngrams(words))
+            ngrams.append(self.gen_ngrams(words[0]))
         else:
             for x in xrange(len(words)):
                 if self.isodd(x):
