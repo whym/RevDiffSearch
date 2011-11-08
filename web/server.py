@@ -50,16 +50,17 @@ class LuceneServer(SocketServer.BaseRequestHandler):
                     ngrams.append(self.gen_ngrams(words[x]))
             for x in xrange(len(ngrams)):
                 tokens = ngrams[x]
+                tokens = ['%s ' % token for token in tokens]
                 for y in xrange(len(tokens)):
                     tokens.insert(y*2, '%s:'% words[x])
                 ngrams[x] = tokens
-        ngrams = ' '.join(itertools.chain(*ngrams))
+        ngrams = ''.join(itertools.chain(*ngrams))
         return ngrams
 
     def gen_ngrams(self, word, n=3):
         wlen = len(word)
         if wlen <= n:
-            return word
+            return [word]
         i = 0
         ret = []
         while i < wlen - n + 1:
