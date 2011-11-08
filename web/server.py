@@ -112,10 +112,10 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         
         MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
-        query = self.parse_query(self.data)
+        query_str = self.parse_query(self.data)
         
         try:
-            qp = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(query)
+            query = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(query_str)
             print query
             hits = searcher.search(query, MAX)
             #if settings.DEBUG:
