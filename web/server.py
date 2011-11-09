@@ -45,18 +45,21 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         for token in tokens:
             field, value = token.split(':')
             if field in ngram_fields:
-                value = self.gen_ngrams(value)
+                value = gen_ngrams(value)
                 value = ['%s ' % val for val in value]
+                n = len(value)
+                for i in reversed(xrange(n)):
+                    value[i] = '%s:%s' % (field, value[i])
             else:
-                value = '%s ' % value
+                value = '%s:%s ' % (field, value)
+    
             ngrams[field] = value
         
-        fields, values = [],[]
         for x,token in enumerate(tokens):
             field, value = token.split(':')
             if field in ngrams:
-                tokens[x] = '%s:%s' % (field, ''.join(ngrams[field]))
-    
+                tokens[x] = ''.join(ngrams[field])
+        
         ngrams = ''.join(itertools.chain(*tokens))
         return ngrams
 
@@ -69,7 +72,6 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         while i < wlen - n + 1:
             ret.append(word[i:i+n])
             i += 1
-        #return ' '.join(ret)
         return ret
 
     def serialize(self, hits):
