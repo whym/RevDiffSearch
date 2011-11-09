@@ -24,7 +24,7 @@ import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
