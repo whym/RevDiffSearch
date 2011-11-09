@@ -89,7 +89,8 @@ class index:
             #print buffer.getvalue()
             results = cPickle.loads(buffer.getvalue())
         except Exception,e:
-            print e 
+            print e
+            resuls = e
         finally:
             sock.close()
         
