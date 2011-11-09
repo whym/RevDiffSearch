@@ -18,6 +18,9 @@ urls = (
 )
 
 
+if settings.DEBUG:
+    web.config.debug = True
+
 lookup = TemplateLookup(directories=['templates/'])
 if settings.HOSTNAME == 'production':
     application = web.application(urls, globals()).wsgifunc()
