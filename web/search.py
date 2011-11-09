@@ -2,6 +2,7 @@ import os
 import socket
 import sys
 import cPickle
+import cStringIO
 
 import web
 from web import form
@@ -12,15 +13,16 @@ from mako.lookup import TemplateLookup
 
 import settings
 
-
 urls = (
 '/', 'index'        
 )
 
-if settings.hostname == 'production':
+
+lookup = TemplateLookup(directories=['templates/'])
+if settings.HOSTNAME == 'production':
     application = web.application(urls, globals()).wsgifunc()
 else:
-    application = web.application(urls, globals())
+    app = web.application(urls, globals())
 
 lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
 
@@ -31,6 +33,11 @@ def serve_template(templatename, **kwargs):
 
 
 class index:
+    def __init__(self, *args, **kwargs):
+        self.links= {'rev_id':'w/index.php?diff=',
+                     'title':'wiki/',
+                     'user_text':'wiki/User:'}
+        
     def searchform(self):
         search = form.Form(
             form.Textarea('query', form.notnull),
@@ -50,8 +57,8 @@ class index:
             query_str = search['query'].value
             results = self.fetch_results(query_str)
             headings = self.extract_headings(results)
-            print results
-            return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search)
+            print 'About to send results to browser...'
+            return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search, links=self.links)
     
     
     def extract_headings(self, results):
@@ -67,11 +74,22 @@ class index:
             sock.send(query_str)
         
             # Receive data from the server and shut down
-            received = sock.recv(1024)
-            results = cPickle.loads(received)
-            #print "Received: {}".format(results)
+            buffer = cStringIO.StringIO()
+            buffer.write(sock.recv(4096))
+            done = False
+            while not done:
+                more = sock.recv(4096)
+                if not more:
+                    done = True
+                else:
+                    buffer.write(more)
+            #print buffer.getvalue()
+            results = cPickle.loads(buffer.getvalue())
+        except Exception,e:
+            print e 
         finally:
             sock.close()
+        
         return results
         
         #print "Sent:     {}".format(query_str)
@@ -79,5 +97,6 @@ class index:
     
 
 if __name__ == '__main__':
-    application.run()
+    if app:
+        app.run()
     

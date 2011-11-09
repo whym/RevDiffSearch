@@ -40,10 +40,10 @@ public class Indexer implements Runnable {
 	private static final Prop[] propTypes = new Prop[] {
 		new Prop("rev_id",    Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("page_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
-		new Prop("namespace", Field.Store.YES, Field.Index.NOT_ANALYZED),
+		new Prop("namespace", Field.Store.YES, Field.Index.ANALYZED),
 		new Prop("title",     Field.Store.YES, Field.Index.ANALYZED),
-		new Prop("timestamp", Field.Store.YES, Field.Index.NOT_ANALYZED),
-		new Prop("comment",     Field.Store.YES, Field.Index.ANALYZED),
+		new Prop("timestamp", Field.Store.YES, Field.Index.ANALYZED),
+		new Prop("comment",   Field.Store.YES, Field.Index.ANALYZED),
 		new Prop("minor",     Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),

@@ -1,14 +1,25 @@
 import SocketServer
 import os
 import cPickle
+import logging
+import cgi
+import itertools
+import re
 
 import settings
-from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM 
+
+from lucene import StandardAnalyzer, File, QueryParser, Version, SimpleFSDirectory, File, IndexSearcher, initVM, JavaError
 
 
 vm = initVM()
+print settings.INDEX_DIR
+
 index_dir = SimpleFSDirectory(File(settings.INDEX_DIR))
 searcher = IndexSearcher(index_dir)
+logging.basicConfig(filename='diffdb.log',level=logging.DEBUG)
+
+terms= re.compile('(\w[a-z0-9\_]*:[a-z0-9\s]*(?![a-z\:]))', re.IGNORECASE)
+ngram_fields = ['diff', 'title', 'user_text']
 
 class LuceneServer(SocketServer.BaseRequestHandler):
     """
@@ -19,18 +30,75 @@ class LuceneServer(SocketServer.BaseRequestHandler):
     client.
     """
 
+    def getheaders(self, doc):
+        headers = []
+        fields = doc.getFields()
+        for field in fields:
+            headers.append(field.name())
+        print headers
+        return headers
+    
+    def parse_query(self, data):
+        tokens = re.findall(terms, data)
+        ngrams = {}
+
+        for token in tokens:
+            field, value = token.split(':')
+            if field in ngram_fields:
+                value = self.gen_ngrams(value)
+                value = ['%s ' % val for val in value]
+            else:
+                value = '%s ' % value
+            ngrams[field] = value
+        
+        fields, values = [],[]
+        for x,token in enumerate(tokens):
+            field, value = token.split(':')
+            if field in ngrams:
+                tokens[x] = '%s:%s' % (field, ''.join(ngrams[field]))
+    
+        ngrams = ''.join(itertools.chain(*tokens))
+        return ngrams
+
+    def gen_ngrams(self, word, n=3):
+        wlen = len(word)
+        if wlen <= n:
+            return [word]
+        i = 0
+        ret = []
+        while i < wlen - n + 1:
+            ret.append(word[i:i+n])
+            i += 1
+        #return ' '.join(ret)
+        return ret
+
     def serialize(self, hits):
         results = {}
-        results['headings'] = ['score', 'contents'] #hardcoded not ideal 
-        for hit in hits.scoreDocs:
+        results['headings'] =[]
+        
+        for x, hit in enumerate(hits.scoreDocs):
             doc = searcher.doc(hit.doc)
+            if x == 0:
+                results['headings'] =self.getheaders(doc)
+            
             #print dir(doc)
             #print doc.getFields(), doc.getValues("contents")
-            #print doc, doc.toString()
-            doc.get('contents') #.encode("utf-8")
+            #doc.get('contents') #.encode("utf-8")
             results[hit.doc] = {}
             results[hit.doc]['score'] = hit.score
-            results[hit.doc]['contents'] = doc.get('contents')
+            
+            for header in results['headings']:
+                print header, doc.get(header)
+                value = doc.get(header)
+                if header == 'title':
+                    value = "%s" % value
+                    value = eval(value)
+                elif header == 'user_text':
+                    value = "%s" % value
+                    value = eval(value)
+                elif header == 'diff':
+                    value = cgi.escape(value, quote=True)
+                results[hit.doc][header] = value
         return cPickle.dumps(results)
 
     def handle(self):
@@ -39,24 +107,28 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         # we can now use e.g. readline() instead of raw recv() calls
         self.data = self.request.recv(1024).strip()
         #print "{} wrote:".format(self.client_address[0])
-        #print self.data
+        print self.data
         # just send back the same data, but upper-cased
         
-        MAX = 1000
+        MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
-        query = QueryParser(Version.LUCENE_34, 'contents', analyzer).parse(self.data)
+        query_str = self.parse_query(self.data)
         
-        hits = searcher.search(query, MAX)         
-        print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
-        serialized = self.serialize(hits)
+        try:
+            query = QueryParser(Version.LUCENE_34, 'diff', analyzer).parse(query_str)
+            print query
+            hits = searcher.search(query, MAX)
+            #if settings.DEBUG:
+            print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
+            serialized = self.serialize(hits)
+        except JavaError, e:
+            serialized = cPickle.dumps(e)
         self.request.send(serialized)
 
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
-    
     # Create the server, binding to localhost on port 9999
-    server = SocketServer.TCPServer((HOST, PORT), LuceneServer)
+    server = SocketServer.TCPServer((settings.HOST, settings.PORT), LuceneServer)
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     server.serve_forever()
