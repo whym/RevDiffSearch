@@ -35,7 +35,6 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         fields = doc.getFields()
         for field in fields:
             headers.append(field.name())
-        print headers
         return headers
     
     def parse_query(self, data):
@@ -45,7 +44,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         for token in tokens:
             field, value = token.split(':')
             if field in ngram_fields:
-                value = gen_ngrams(value)
+                value = self.gen_ngrams(value)
                 value = ['%s ' % val for val in value]
                 n = len(value)
                 for i in reversed(xrange(n)):
