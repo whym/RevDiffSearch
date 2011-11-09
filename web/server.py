@@ -99,6 +99,7 @@ class LuceneServer(SocketServer.BaseRequestHandler):
                     value = eval(value)
                 elif header == 'diff':
                     value = cgi.escape(value, quote=True)
+                    value = value.encode('utf-8')
                 results[hit.doc][header] = value
         return cPickle.dumps(results)
 
