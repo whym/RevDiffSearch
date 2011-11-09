@@ -21,7 +21,7 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.Version;
 
 public class Main {
-	private static final int NTHREDS = 9;
+	private static final int NTHREADS = 15;
 	private static final long REPORT_DURATION_MSECS = 10000L;
 	public static String indexDir = null;
 	public static String dataDir = null;
@@ -30,20 +30,15 @@ public class Main {
 																		 BlockingQueue<Document> prodq,
 																		 BlockingQueue<Document> poolq,
 																		 List<Runnable> producers,
-																		 IndexWriter writer, File file) {
+																		 IndexWriter writer, File file) throws IOException {
 		if (file.canRead()) {
 			if (file.isDirectory()) {
 				for (File f : file.listFiles()) {
 					indexDocuments(executor, prodq, poolq, producers, writer, f);
 				}
 			} else {
-				//Runnable worker = new Indexer(writer, file);
-				try {
-					executor.execute(new DiffDocumentProducer(new FileReader(file), prodq, poolq, producers));
-					executor.execute(new DiffDocumentConsumer(writer, prodq, poolq, producers));
-				} catch ( IOException e ) {
-					System.err.println(e);
-				}
+				executor.execute(new DiffDocumentProducer(new FileReader(file), prodq, poolq, producers));
+				executor.execute(new DiffDocumentConsumer(writer, prodq, poolq, producers));
 			}
 		}
 	}
@@ -57,11 +52,11 @@ public class Main {
 		}
 		indexDir = args[0];
 		dataDir = args[1];
-		double ramBufferSizeMB = 128;
+		double ramBufferSizeMB = 1024;
 
 		final long start = System.currentTimeMillis();
 
-		final ExecutorService executor = Executors.newFixedThreadPool(NTHREDS);
+		final ExecutorService executor = Executors.newFixedThreadPool(NTHREADS);
 		Directory dir = new NIOFSDirectory(new File(indexDir), null);
 		LogDocMergePolicy lmp = new LogDocMergePolicy();
 		lmp.setUseCompoundFile(true); // This might fix the too many open files,
@@ -76,8 +71,8 @@ public class Main {
 		cfg.setMergePolicy(lmp);
 
 		final IndexWriter writer = new IndexWriter(dir, cfg);
-		final BlockingQueue<Document> prodq = new ArrayBlockingQueue<Document>(NTHREDS * 100);
-		final BlockingQueue<Document> poolq = new ArrayBlockingQueue<Document>(NTHREDS * 100);
+		final BlockingQueue<Document> prodq = new ArrayBlockingQueue<Document>(NTHREADS * 1000);
+		final BlockingQueue<Document> poolq = new ArrayBlockingQueue<Document>(NTHREADS * 1000);
 		try {
 			// run a thread that reports the progress periodically
 			new Thread(new Runnable() {
@@ -98,7 +93,7 @@ public class Main {
 				}
 			}).start();
 
-			for ( int i = 0; i < NTHREDS; ++i ) {
+			while ( poolq.remainingCapacity() > 0 ) {
 				poolq.add(DiffDocumentProducer.createEmptyDocument());
 			}
 			indexDocuments(executor,
