@@ -18,13 +18,32 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.commons.lang.StringEscapeUtils;
 
 public class DiffDocumentProducer implements Runnable {
+  private static class Prop {
+    // Note that fields which are not stored are not available in documents
+    // retrieved from the index
+    private final String name;
+    private final Store store;
+    private final Index index;
+    protected Prop() {
+      this("", Field.Store.NO, Field.Index.NOT_ANALYZED);
+    }
+    public Prop(String name, Store store, Index index) {
+      this.name = name;
+      this.store = store;
+      this.index = index;
+    }
+    public String name() { return this.name; }
+    public Store store() { return this.store; }
+    public Index index() { return this.index; }
+  }
+
 	private static final Prop[] propTypes = new Prop[] {
 		new Prop("rev_id",    Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("page_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("namespace", Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("title",     Field.Store.YES, Field.Index.ANALYZED),
 		new Prop("timestamp", Field.Store.YES, Field.Index.NOT_ANALYZED),
-		new Prop("comment",     Field.Store.YES, Field.Index.ANALYZED),
+		new Prop("comment",   Field.Store.YES, Field.Index.ANALYZED),
 		new Prop("minor",     Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_id",   Field.Store.YES, Field.Index.NOT_ANALYZED),
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
@@ -72,8 +91,7 @@ public class DiffDocumentProducer implements Runnable {
         String[] props = line.split("\t");
         for (int i = 0; i < propTypes.length; ++i) {
           Prop proptype = propTypes[i];
-          Field field = (Field) doc.getFieldable(proptype
-                                                 .name());
+          Field field = (Field) doc.getFieldable(proptype.name());
           field.setValue(props[i]);
         }
         // extract additions and removals and store them in the buffers
@@ -84,7 +102,7 @@ public class DiffDocumentProducer implements Runnable {
           try {
             p = parseDiff(props[i]);
           } catch (Exception e) {
-            System.err.println(e + ": " + props[i]);
+            System.err.println(e + ": " + props[0] + ", " + props[i]);
             continue;
           }
           ("-1".equals(p[1]) ? rbuff: abuff).append(p[0] + p[1] + StringEscapeUtils.unescapeJava(p[2]) + "\t");
