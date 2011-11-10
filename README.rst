@@ -12,6 +12,13 @@ This indexer assumes the input files to be formatted as explained in [#]_.
 .. [#] https://github.com/whym/wikihadoop
 .. [#] http://meta.wikimedia.org/wiki/WSoR_datasets/revision_diff
 
+You invoke diffindexer on the command line using the following command:
+
+CLASSPATH=$CLASSPATH:/home/yusuke/diffdbtest/lib/diffdb.jar:/home/yusuke/diffdbtest/lib/lucene-core-3.4-SNAPSHOT.jar:/home/yusuke/diffdbtest/lib/lucene-analyzers-3.4-SNAPSHOT.jar:/home/yusuke/diffdbtest/lib/commons-lang3-3.0.1.jar java org.wikimedia.diffdb.Searcher -index /home/yusuke/diffdbtest/index
+
+
+
+
 
 Requirements
 =====================
