@@ -19,8 +19,11 @@ package org.wikimedia.diffdb;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -44,13 +47,13 @@ public class Searcher {
 	private Searcher() {
 	}
 
-  private static String truncateString(String str, int max) {
-    if ( str.length() + 3 > max ) {
-      return str.substring(0, max-3) + "...";
-    } else {
-      return str;
-    }
-  }
+	private static String truncateString(String str, int max) {
+		if (str.length() + 3 > max) {
+			return str.substring(0, max - 3) + "...";
+		} else {
+			return str;
+		}
+	}
 
 	/** Simple command-line based search demo. */
 	public static void main(String[] args) throws Exception {
@@ -93,7 +96,7 @@ public class Searcher {
 				hitsPerPage = Integer.parseInt(args[i + 1]);
 				if (hitsPerPage <= 0) {
 					System.err
-					.println("There must be at least 1 hit per page.");
+							.println("There must be at least 1 hit per page.");
 					System.exit(1);
 				}
 				i++;
@@ -165,7 +168,7 @@ public class Searcher {
 	 * 
 	 */
 	private static void printResultHeading(List<Fieldable> fields) {
-		if (fields != null){
+		if (fields != null) {
 			System.out.print("#\tScore\t");
 			Iterator<Fieldable> it = fields.iterator();
 			while (it.hasNext()) {
@@ -175,6 +178,56 @@ public class Searcher {
 			System.out.println();
 		}
 	}
+
+	public static String createFilename(Query query) {
+		String sFileName = null;
+		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		Date date = new Date();
+		sFileName = query.toString() + '_' + dateFormat.format(date);
+		sFileName = sFileName.replace(" ", "_");
+		return sFileName;
+	}
+
+	public static void writeResults(Query query, IndexSearcher searcher,TopDocs results) {
+		String sFileName = createFilename(query);
+		int hits = results.totalHits;
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(sFileName);
+			for (int i = 0; i<hits;i++){
+				Document doc = searcher.doc(i); 
+				List<Fieldable> fields = doc.getFields();
+				Iterator<Fieldable> it = fields.iterator();
+				if (i==0){
+					while (it.hasNext()){ 
+						Fieldable field = it.next();
+						writer.append(field.name() + "\t");
+					}
+					writer.append("\n");
+				//Not sure if I need to reset the iterator;
+				}
+				while (it.hasNext()) {
+					Fieldable field = it.next();
+					writer.append(StringEscapeUtils.escapeJava(truncateString(field.stringValue(), 100)) + "\t");
+				}
+				writer.append("\n");
+			}
+			writer.flush();
+			writer.close();
+		} catch (IOException e) {
+			System.out.println("Cannot write to file");
+			e.printStackTrace();
+		} finally {
+			try {
+				writer.close();
+			} catch (IOException e) {
+				System.out.println("Cannot close writer");
+				e.printStackTrace();
+			}
+		}
+
+	}
+
 	public static void doPagingSearch(BufferedReader in,
 			IndexSearcher searcher, Query query, int hitsPerPage, boolean raw,
 			boolean interactive) throws IOException {
@@ -191,9 +244,9 @@ public class Searcher {
 		while (true) {
 			if (end > hits.length) {
 				System.out
-				.println("Only results 1 - " + hits.length + " of "
-						+ numTotalHits
-						+ " total matching documents collected.");
+						.println("Only results 1 - " + hits.length + " of "
+								+ numTotalHits
+								+ " total matching documents collected.");
 				System.out.println("Collect more (y/n) ?");
 				String line = in.readLine();
 				if (line.length() == 0 || line.charAt(0) == 'n') {
@@ -217,13 +270,16 @@ public class Searcher {
 				List<Fieldable> fields = doc.getFields();
 				Iterator<Fieldable> it = fields.iterator();
 				if (key != null) {
-					if (i==0){
+					if (i == 0) {
 						printResultHeading(fields);
 					}
-					System.out.print((i + 1) + ".\t" + hits[i].score + "\t");	
+					System.out.print((i + 1) + ".\t" + hits[i].score + "\t");
 					while (it.hasNext()) {
 						Fieldable field = it.next();
-						System.out.print(StringEscapeUtils.escapeJava(truncateString(field.stringValue(), 100)) + "\t");
+						System.out.print(StringEscapeUtils
+								.escapeJava(truncateString(field.stringValue(),
+										100))
+								+ "\t");
 					}
 					// System.out.println((i + 1) + ". " + key);
 					System.out.println();
@@ -249,7 +305,7 @@ public class Searcher {
 						System.out.print("(n)ext page, ");
 					}
 					System.out
-					.println("(q)uit or enter number to jump to a page.");
+							.println("(q)uit or enter number to jump to a page.");
 
 					String line = in.readLine();
 					if (line.length() == 0 || line.charAt(0) == 'q') {
@@ -264,6 +320,9 @@ public class Searcher {
 							start += hitsPerPage;
 						}
 						break;
+					} else if (line.charAt(0) == 'w') {
+						writeResults(query,searcher, results);
+
 					} else {
 						int page = Integer.parseInt(line);
 						if ((page - 1) * hitsPerPage < numTotalHits) {
@@ -282,9 +341,5 @@ public class Searcher {
 	}
 }
 /*
- * Local variables:
- * tab-width: 2
- * c-basic-offset: 2
- * indent-tabs-mode: t
- * End:
+ * Local variables: tab-width: 2 c-basic-offset: 2 indent-tabs-mode: t End:
  */
