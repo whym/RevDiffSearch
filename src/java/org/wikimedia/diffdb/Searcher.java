@@ -43,6 +43,7 @@ import org.apache.lucene.util.Version;
 /** Simple command-line based search demo. */
 public class Searcher {
 	private static final String searchKey = "rev_id";
+	private static int MAX_HITS = 10000;
 
 	private Searcher() {
 	}
@@ -156,6 +157,14 @@ public class Searcher {
 		searcher.close();
 	}
 
+	public static void setMAX_HITS(int max_hits) {
+		MAX_HITS = max_hits;
+	}
+
+	public static int getMAX_HITS() {
+		return MAX_HITS;
+	}
+
 	/**
 	 * This demonstrates a typical paging search scenario, where the search
 	 * engine presents pages of size n to the user. The user can then go to the
@@ -181,20 +190,26 @@ public class Searcher {
 
 	public static String createFilename(Query query) {
 		String sFileName = null;
-		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
 		Date date = new Date();
-		sFileName = query.toString() + '_' + dateFormat.format(date);
+		sFileName = dateFormat.format(date) + '_' + query.toString();
 		sFileName = sFileName.replace(" ", "_");
+		sFileName = sFileName.replace(":", "_");
 		return sFileName;
 	}
 
 	public static void writeResults(Query query, IndexSearcher searcher,TopDocs results) {
 		String sFileName = createFilename(query);
+		int max_hits = getMAX_HITS();
 		int hits = results.totalHits;
 		FileWriter writer = null;
 		try {
 			writer = new FileWriter(sFileName);
 			for (int i = 0; i<hits;i++){
+				if (i>max_hits){ 
+					//limit number of written results to MAX_HITS. 
+					break;
+				}
 				Document doc = searcher.doc(i); 
 				List<Fieldable> fields = doc.getFields();
 				Iterator<Fieldable> it = fields.iterator();
@@ -208,7 +223,7 @@ public class Searcher {
 				}
 				while (it.hasNext()) {
 					Fieldable field = it.next();
-					writer.append(StringEscapeUtils.escapeJava(truncateString(field.stringValue(), 100)) + "\t");
+					writer.append(field.stringValue() + "\t");
 				}
 				writer.append("\n");
 			}
@@ -302,7 +317,7 @@ public class Searcher {
 						System.out.print("(p)revious page, ");
 					}
 					if (start + hitsPerPage < numTotalHits) {
-						System.out.print("(n)ext page, ");
+						System.out.print("(n)ext page, (w)rite to file, ");
 					}
 					System.out
 							.println("(q)uit or enter number to jump to a page.");
