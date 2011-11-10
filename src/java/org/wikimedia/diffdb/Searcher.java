@@ -348,8 +348,9 @@ public class Searcher {
 						}
 					}
 				}
-				if (quit)
-					break;
+				if (quit) {
+					System.exit(0);
+				}
 				end = Math.min(numTotalHits, start + hitsPerPage);
 			}
 		}
