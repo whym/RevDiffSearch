@@ -51,6 +51,13 @@ public class IndexMerger {
 		}
 
 		File INDEX_DIR = new File(args[0]);
+    boolean optimize = true;
+    {
+      String s;
+      if ( (s = System.getProperty("optimize")) != null ) {
+        optimize = "true".equals(s);
+      }
+    }
 
 		INDEX_DIR.mkdir();
 
@@ -83,8 +90,10 @@ public class IndexMerger {
 			writer.addIndexes(indexes.toArray(new Directory[indexes.size()]));
 			System.out.println("done");
 
-			System.out.print("Optimizing index...");
-			writer.optimize();
+      if ( optimize ) {
+        System.out.print("Optimizing index...");
+        writer.optimize();
+      }
 			writer.close();
 			System.out.println("done");
 

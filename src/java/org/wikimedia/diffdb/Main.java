@@ -53,6 +53,13 @@ public class Main {
 		indexDir = args[0];
 		dataDir = args[1];
 		double ramBufferSizeMB = 1024;
+		int poolsize = NTHREADS * 10000;
+		{
+			String s;
+			if ( (s = System.getProperty("poolsize")) != null ) {
+				poolsize = Integer.parseInt(s);
+			}
+		}
 
 		final long start = System.currentTimeMillis();
 
@@ -71,8 +78,8 @@ public class Main {
 		cfg.setMergePolicy(lmp);
 
 		final IndexWriter writer = new IndexWriter(dir, cfg);
-		final BlockingQueue<Document> prodq = new ArrayBlockingQueue<Document>(NTHREADS * 1000);
-		final BlockingQueue<Document> poolq = new ArrayBlockingQueue<Document>(NTHREADS * 1000);
+		final BlockingQueue<Document> prodq = new ArrayBlockingQueue<Document>(poolsize);
+		final BlockingQueue<Document> poolq = new ArrayBlockingQueue<Document>(poolsize);
 		try {
 			// run a thread that reports the progress periodically
 			new Thread(new Runnable() {
