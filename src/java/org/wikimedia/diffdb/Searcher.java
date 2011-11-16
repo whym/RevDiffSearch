@@ -139,7 +139,7 @@ public class Searcher {
 
 			if (repeat > 0) { // repeat & time as benchmark
 				Date start = new Date();
-				for (int i = 0; i < repeat; i++) {
+				for (int i = 0;  i < repeat; i++) {
 					searcher.search(query, null, 100);
 				}
 				Date end = new Date();

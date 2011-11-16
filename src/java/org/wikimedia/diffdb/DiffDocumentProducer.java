@@ -70,8 +70,9 @@ public class DiffDocumentProducer implements Runnable {
     }
     createField(doc, new Prop("added_size",   Field.Store.YES, Field.Index.NOT_ANALYZED), "");
     createField(doc, new Prop("removed_size", Field.Store.YES, Field.Index.NOT_ANALYZED), "");
-    createField(doc, new Prop("added",   Field.Store.YES, Field.Index.ANALYZED), "");
-    createField(doc, new Prop("removed", Field.Store.YES, Field.Index.ANALYZED), "");
+    createField(doc, new Prop("added",        Field.Store.YES, Field.Index.ANALYZED), "");
+    createField(doc, new Prop("removed",      Field.Store.YES, Field.Index.ANALYZED), "");
+    createField(doc, new Prop("action",       Field.Store.YES, Field.Index.NOT_ANALYZED), "");
     return doc;
   }
 
@@ -112,10 +113,23 @@ public class DiffDocumentProducer implements Runnable {
         ((Field)doc.getFieldable("removed")).setValue(rbuff.toString());
         ((Field)doc.getFieldable("added_size")).setValue("" + abuff.length());
         ((Field)doc.getFieldable("removed_size")).setValue("" + rbuff.length());
+
+				String action = "none";
+				if ( abuff.length() > 0  &&  rbuff.length() > 0 ) {
+					action = "both";
+				} else if ( abuff.length() > 0 ) {
+					action = "addition";
+				} else {
+					action = "removal";
+				}
+					
+        ((Field)doc.getFieldable("action")).setValue(action);
+
         if (props.length < propTypes.length) {
           System.err.println("line " + linenumber
                              + ": illegal line format");
         }
+
         ++linenumber;
         prodq.put(doc);
       }
