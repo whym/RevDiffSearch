@@ -32,6 +32,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Fieldable;
+import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -118,6 +119,7 @@ public class Searcher {
 			in = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
 		}
 		QueryParser parser = new QueryParser(Version.LUCENE_34, field, analyzer);
+		
 		while (true) {
 			if (queries == null && queryString == null) { // prompt the user
 				System.out.println("Enter query: ");
@@ -134,21 +136,28 @@ public class Searcher {
 				break;
 			}
 
-			Query query = parser.parse(line);
-			System.out.println("Searching for: " + query.toString(field));
+			try {
+				Query query = parser.parse(line);
 
-			if (repeat > 0) { // repeat & time as benchmark
-				Date start = new Date();
-				for (int i = 0;  i < repeat; i++) {
-					searcher.search(query, null, 100);
+				System.out.println("Searching for: " + query.toString(field));
+
+				if (repeat > 0) { // repeat & time as benchmark
+					Date start = new Date();
+					for (int i = 0; i < repeat; i++) {
+						searcher.search(query, null, 100);
+					}
+					Date end = new Date();
+					System.out.println("Time: "
+							+ (end.getTime() - start.getTime()) + "ms");
 				}
-				Date end = new Date();
-				System.out.println("Time: " + (end.getTime() - start.getTime())
-						+ "ms");
-			}
 
-			doPagingSearch(in, searcher, query, hitsPerPage, raw,
-					queries == null && queryString == null);
+				doPagingSearch(in, searcher, query, hitsPerPage, raw,
+						queries == null && queryString == null);
+
+			} catch (ParseException e) {
+				System.out
+						.println("Error parsing the query, please refine your query.");
+			}
 
 			if (queryString != null) {
 				break;
@@ -198,28 +207,29 @@ public class Searcher {
 		return sFileName;
 	}
 
-	public static void writeResults(Query query, IndexSearcher searcher,TopDocs results) {
+	public static void writeResults(Query query, IndexSearcher searcher,
+			TopDocs results) {
 		String sFileName = createFilename(query);
 		int max_hits = getMAX_HITS();
 		int hits = results.totalHits;
 		FileWriter writer = null;
 		try {
 			writer = new FileWriter(sFileName);
-			for (int i = 0; i<hits;i++){
-				if (i>max_hits){ 
-					//limit number of written results to MAX_HITS. 
+			for (int i = 0; i < hits; i++) {
+				if (i > max_hits) {
+					// limit number of written results to MAX_HITS.
 					break;
 				}
-				Document doc = searcher.doc(i); 
+				Document doc = searcher.doc(i);
 				List<Fieldable> fields = doc.getFields();
 				Iterator<Fieldable> it = fields.iterator();
-				if (i==0){
-					while (it.hasNext()){ 
+				if (i == 0) {
+					while (it.hasNext()) {
 						Fieldable field = it.next();
 						writer.append(field.name() + "\t");
 					}
 					writer.append("\n");
-				//Not sure if I need to reset the iterator;
+					// Not sure if I need to reset the iterator;
 				}
 				while (it.hasNext()) {
 					Fieldable field = it.next();
@@ -242,8 +252,9 @@ public class Searcher {
 		}
 
 	}
-	
-	public static void printCommandline(int start, int hitsPerPage, int numTotalHits) {
+
+	public static void printCommandline(int start, int hitsPerPage,
+			int numTotalHits) {
 		System.out.print("Press ");
 		if (start - hitsPerPage >= 0) {
 			System.out.print("(p)revious page, ");
@@ -251,8 +262,7 @@ public class Searcher {
 		if (start + hitsPerPage < numTotalHits) {
 			System.out.print("(n)ext page, (w)rite to file, ");
 		}
-		System.out
-				.println("(q)uit or enter number to jump to a page.");
+		System.out.println("(q)uit or enter number to jump to a page.");
 	}
 
 	public static void doPagingSearch(BufferedReader in,
@@ -324,16 +334,18 @@ public class Searcher {
 
 			if (numTotalHits >= end) {
 				while (true) {
-					
+
 					printCommandline(start, hitsPerPage, numTotalHits);
 
 					String line = in.readLine();
-					if (line.length() == 0 || line.charAt(0) == 'q') {
+					if (line.length() == 0 || line.charAt(0) == 'x') {
 						quit = true;
 						break;
 					}
 					if (line.charAt(0) == 'p') {
 						start = Math.max(0, start - hitsPerPage);
+						break;
+					} else if (line.charAt(0) == 'q') {
 						break;
 					} else if (line.charAt(0) == 'n') {
 						if (start + hitsPerPage < numTotalHits) {
@@ -341,7 +353,7 @@ public class Searcher {
 						}
 						break;
 					} else if (line.charAt(0) == 'w') {
-						writeResults(query,searcher, results);
+						writeResults(query, searcher, results);
 
 					} else {
 						try {
@@ -350,7 +362,7 @@ public class Searcher {
 								start = (page - 1) * hitsPerPage;
 								break;
 							}
-						} catch (java.lang.NumberFormatException e) { 
+						} catch (java.lang.NumberFormatException e) {
 							System.out.println("No such page");
 						}
 					}
