@@ -15,12 +15,16 @@ from mimerender import mimerender
 
 import settings
 
-
 urls = (
 '/', 'index'        
 )
 
-if settings.hostname == 'production':
+
+if settings.DEBUG:
+    web.config.debug = True
+
+lookup = TemplateLookup(directories=['templates/'])
+if settings.HOSTNAME == 'production':
     application = web.application(urls, globals()).wsgifunc()
 else:
     app = web.application(urls, globals())
@@ -35,6 +39,11 @@ def serve_template(templatename, **kwargs):
 
 
 class index:
+    def __init__(self, *args, **kwargs):
+        self.links= {'rev_id':'w/index.php?diff=',
+                     'title':'wiki/',
+                     'user_text':'wiki/User:'}
+        
     def searchform(self):
         search = form.Form(
             form.Textarea('query', form.notnull),
@@ -77,11 +86,23 @@ class index:
             sock.send(query_str)
         
             # Receive data from the server and shut down
-            received = sock.recv(1024)
-            results = cPickle.loads(received)
-            #print "Received: {}".format(results)
+            buffer = cStringIO.StringIO()
+            buffer.write(sock.recv(4096))
+            done = False
+            while not done:
+                more = sock.recv(4096)
+                if not more:
+                    done = True
+                else:
+                    buffer.write(more)
+            #print buffer.getvalue()
+            results = cPickle.loads(buffer.getvalue())
+        except Exception,e:
+            print e
+            resuls = e
         finally:
             sock.close()
+        
         return results
         
         #print "Sent:     {}".format(query_str)

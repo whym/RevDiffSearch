@@ -13,20 +13,24 @@
 	<table>
 		<tr>
 		 % for heading in headings:
-			<td class="even">${heading}</td>
+			<td class="even"><h3>${heading}</h3></td>
 		 % endfor
 		</tr>
 
 	% for x, hit in enumerate(results):
 		% if x % 2 == 1:
-			<tr class="odd">
-		% else:
 			<tr class="even">
+		% else:
+			<tr class="odd">
 		% endif
-		% for result in results[hit]:
-			<td>${results[hit][result]}</td>
-		% endfor
-		</tr>
+			% for heading in headings:
+				% if heading in links:
+					<td><a href="http://en.wikipedia.org/${links[heading]}${results[hit][heading]}">${results[hit][heading]}</a></td>
+				% else:
+					<td>${results[hit][heading]}</td>
+				% endif
+			% endfor
+			</tr>
 	% endfor
 	</table>
 % else:
