@@ -267,6 +267,7 @@ public class Searcher {
 
 		int start = 0;
 		int end = Math.min(numTotalHits, hitsPerPage);
+		boolean quit = false;
 
 		while (true) {
 			if (end > hits.length) {
@@ -322,7 +323,6 @@ public class Searcher {
 			}
 
 			if (numTotalHits >= end) {
-				boolean quit = false;
 				while (true) {
 					
 					printCommandline(start, hitsPerPage, numTotalHits);
@@ -355,10 +355,10 @@ public class Searcher {
 						}
 					}
 				}
-				if (quit) {
-					System.exit(0);
-				}
 				end = Math.min(numTotalHits, start + hitsPerPage);
+			}
+			if (quit) {
+				System.exit(0);
 			}
 		}
 	}
