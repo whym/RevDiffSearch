@@ -42,21 +42,21 @@ class LuceneServer(SocketServer.BaseRequestHandler):
         #print self.data
         # just send back the same data, but upper-cased
         
-        MAX = 1000
+        MAX = 50
         analyzer = StandardAnalyzer(Version.LUCENE_34)
+        self.data = QueryParser.escape(self.data)
         query = QueryParser(Version.LUCENE_34, 'contents', analyzer).parse(self.data)
         
-        hits = searcher.search(query, MAX)         
-        print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
+        hits = searcher.search(query, MAX)
+        if settings.DEBUG:  
+            print "Found %d document(s) that matched query '%s':" % (hits.totalHits, query)
         serialized = self.serialize(hits)
         self.request.send(serialized)
 
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
-    
     # Create the server, binding to localhost on port 9999
-    server = SocketServer.TCPServer((HOST, PORT), LuceneServer)
+    server = SocketServer.TCPServer((settings.HOST, settings.PORT), LuceneServer)
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     server.serve_forever()

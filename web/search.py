@@ -2,6 +2,7 @@ import os
 import socket
 import sys
 import cPickle
+import json
 
 import web
 from web import form
@@ -9,6 +10,8 @@ from web import form
 from mako.template import Template
 from mako.runtime import Context
 from mako.lookup import TemplateLookup
+
+from mimerender import mimerender
 
 import settings
 
@@ -20,10 +23,11 @@ urls = (
 if settings.hostname == 'production':
     application = web.application(urls, globals()).wsgifunc()
 else:
-    application = web.application(urls, globals())
+    app = web.application(urls, globals())
 
 lookup = TemplateLookup(directories=[os.path.join(os.path.dirname(__file__),'templates')])
-
+render_json = lambda **args: json.dumps(args)
+render_html = lambda message: message
 
 def serve_template(templatename, **kwargs):
     view = lookup.get_template(templatename)
@@ -42,6 +46,11 @@ class index:
         search = self.searchform()
         return serve_template('index.html',form=search) 
     
+    @mimerender(
+        default= 'html',
+        html = render_html,
+        #json = render_json,
+    )
     def POST(self):
         search = self.searchform()
         if not search.validates():
@@ -50,7 +59,8 @@ class index:
             query_str = search['query'].value
             results = self.fetch_results(query_str)
             headings = self.extract_headings(results)
-            print results
+            if settings.DEBUG:
+                print results
             return serve_template('results.html',query_str=query_str, results=results, headings=headings, form=search)
     
     
@@ -79,5 +89,6 @@ class index:
     
 
 if __name__ == '__main__':
-    application.run()
+    if app:
+        app.run()
     
