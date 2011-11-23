@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,19 +20,37 @@ public class Dataset {
 	 * 
 	 */
 	static String name;
+	static String pattern = "yyyy-MM-dd'T'HH:mm:ss";
 	static Calendar calendar;
 	static HashMap<Integer, HashMap<Integer, MutableInt>> container = new HashMap<Integer, HashMap<Integer, MutableInt>>();
 
-	public Dataset(String name) {
-		Dataset.name= name; 
+	public Dataset(String dataset_name) {
+		name= dataset_name; 
 		calendar = getCalendar();
 	}
 
-	private static Date convertTimestamptoDate(String timestamp) {
+	public boolean containsYear(int year) {
+		if (container.containsKey(year)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean containsMonth(int year, int month) {
+		HashMap<Integer, MutableInt> result = container.get(year);
+		if (result.containsKey(month)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static Date convertTimestamptoDate(String timestamp) {
 		Date date = null;
-		DateFormat dt = DateFormat.getDateInstance();
+		
+		SimpleDateFormat sdf = new SimpleDateFormat(pattern);
 		try {
-			date = dt.parse(timestamp);
+			date = sdf.parse(timestamp);
+			System.out.println(date.toString());
 		} catch (ParseException e) {
 			System.out.println("Could not parse " + timestamp.toString());
 		}
@@ -51,7 +70,8 @@ public class Dataset {
 		if (key == "year") {
 			result = calendar.get(Calendar.YEAR);
 		} else if (key=="month"){ 
-			result = calendar.get(Calendar.MONTH);
+			//ARRGGHHH.. January is 0, so we need to add +1
+			result = calendar.get(Calendar.MONTH)+1;
 		} else if (key=="day"){
 			result = calendar.get(Calendar.DAY_OF_MONTH);
 		} else {
@@ -80,7 +100,7 @@ public class Dataset {
 //		return result;
 //	}
 
-	public static void addDate(String timestamp) {
+	public void addDate(String timestamp) {
 		Date date = convertTimestamptoDate(timestamp);
 		int year = getComponentFromDate(date, "year");
 		int month = getComponentFromDate(date, "month");
@@ -96,7 +116,7 @@ public class Dataset {
 		incrementObs(year, month);
 	}
 	
-	private static void incrementObs(int year, int month) {
+	private void incrementObs(int year, int month) {
 		MutableInt count = container.get(year).get(month);
 		count.increment();
 		container.get(year).put(month, count);
