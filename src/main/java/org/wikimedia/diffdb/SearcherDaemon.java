@@ -1,32 +1,32 @@
 package org.wikimedia.diffdb;
 
-import java.util.*;
 import java.io.File;
-import java.nio.charset.Charset;
-import org.apache.commons.lang3.StringEscapeUtils;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.concurrent.Executors;
-import java.util.logging.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.string.StringEncoder;
-import org.jboss.netty.handler.codec.string.StringDecoder;
-
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Fieldable;
-import org.apache.lucene.queryParser.ParseException;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+
+import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.handler.codec.string.StringDecoder;
+import org.jboss.netty.handler.codec.string.StringEncoder;
 
 public class SearcherDaemon {
   public static class SearcherHandler extends SimpleChannelUpstreamHandler {
@@ -76,8 +76,9 @@ public class SearcherDaemon {
           public ChannelPipeline getPipeline() throws Exception {
           ChannelPipeline pipeline = Channels.pipeline(new SearcherHandler(new IndexSearcher(FSDirectory.open(new File("index"))),
                                                                            new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(3))));
-          pipeline.addLast("stringDecoder", new StringDecoder("UTF-8"));
-          pipeline.addLast("stringEncoder", new StringEncoder("UTF-8"));
+          Charset charset = Charset.forName("UTF-8");
+          pipeline.addLast("stringDecoder", new StringDecoder(charset));
+          pipeline.addLast("stringEncoder", new StringEncoder(charset));
           return pipeline;
         }
       });
