@@ -44,6 +44,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.wikimedia.diffdb.utils.FileUtils;
 
 /** Simple command-line based search demo. */
 public class Searcher {
@@ -201,19 +202,10 @@ public class Searcher {
 		}
 	}
 
-	public static String createFilename(Query query) {
-		String sFileName = null;
-		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
-		Date date = new Date();
-		sFileName = dateFormat.format(date) + '_' + query.toString();
-		sFileName = sFileName.replace(" ", "_");
-		sFileName = sFileName.replace(":", "_");
-		return sFileName;
-	}
 
 	public static void writeResults(Query query, IndexSearcher searcher,
 			TopDocs results) {
-		String sFileName = createFilename(query);
+		String sFileName = FileUtils.createFilename(query.toString());
 		int max_hits = getMAX_HITS();
 		int hits = results.totalHits;
 		CSVWriter writer = null;

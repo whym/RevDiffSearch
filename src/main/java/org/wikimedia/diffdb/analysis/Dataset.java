@@ -2,7 +2,6 @@ package org.wikimedia.diffdb.analysis;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -12,6 +11,7 @@ import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.wikimedia.diffdb.utils.FileUtils;
 
 public class Dataset {
 	/*
@@ -122,20 +122,8 @@ public class Dataset {
 		container.get(year).put(month, count);
 	}
 	
-	private static String createFilename() {
-		Date date = new Date();
-		int year = getComponentFromDate(date, "year");
-		int month = getComponentFromDate(date, "month");
-		int day = getComponentFromDate(date, "day");
-		
-		String filename = name + "_" + year + "_" + month + "_" + day;
-		
-		return filename;
-		
-	}
-	
 	public static void writeDataset() throws IOException {
-		String filename = createFilename();
+		String filename = FileUtils.createFilename(name);
 		FileWriter fstream = new FileWriter(filename);
 		
 		Set<Integer> years = container.keySet();
