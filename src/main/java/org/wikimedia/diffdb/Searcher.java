@@ -27,7 +27,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Collection;
+import java.util.ArrayList;
 import org.apache.commons.lang3.StringEscapeUtils;
+import au.com.bytecode.opencsv.CSVWriter;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
@@ -35,6 +38,7 @@ import org.apache.lucene.document.Fieldable;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
@@ -212,39 +216,28 @@ public class Searcher {
 		String sFileName = createFilename(query);
 		int max_hits = getMAX_HITS();
 		int hits = results.totalHits;
-		FileWriter writer = null;
+		CSVWriter writer = null;
 		try {
-			writer = new FileWriter(sFileName);
-			for (int i = 0; i < hits; i++) {
-				if (i > max_hits) {
-					// limit number of written results to MAX_HITS.
-					break;
+			writer = new CSVWriter(new FileWriter(sFileName), '\t');
+      Collection<String> fieldNames = searcher.getIndexReader().getFieldNames(IndexReader.FieldOption.ALL);
+      writer.writeNext(fieldNames.toArray(new String[fieldNames.size()]));
+			for (int i = 0; i < hits && i <= max_hits; i++) {
+        Document doc = searcher.doc(i);
+        List<String> vals = new ArrayList<String>();
+        for ( String name: fieldNames ) {
+					vals.add(StringEscapeUtils
+                   .escapeJava(doc.getFieldable(name).stringValue()));
 				}
-				Document doc = searcher.doc(i);
-				List<Fieldable> fields = doc.getFields();
-				Iterator<Fieldable> it = fields.iterator();
-				if (i == 0) {
-					while (it.hasNext()) {
-						Fieldable field = it.next();
-						writer.append(field.name() + "\t");
-					}
-					writer.append("\n");
-					// Not sure if I need to reset the iterator;
-				}
-				while (it.hasNext()) {
-					Fieldable field = it.next();
-					writer.append(field.stringValue() + "\t");
-				}
-				writer.append("\n");
+        writer.writeNext(vals.toArray(new String[vals.size()]));
 			}
 			writer.flush();
-			writer.close();
 		} catch (IOException e) {
 			System.out.println("Cannot write to file");
 			e.printStackTrace();
 		} finally {
-			try {
-				writer.close();
+      try {
+        if ( writer != null )
+          writer.close();
 			} catch (IOException e) {
 				System.out.println("Cannot close writer");
 				e.printStackTrace();
