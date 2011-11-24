@@ -1,21 +1,18 @@
 package org.wikimedia.diffdb;
 
-import java.io.File;
-import java.io.Reader;
-import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Date;
+import java.io.Reader;
 import java.text.SimpleDateFormat;
-import java.util.concurrent.BlockingQueue;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Index;
 import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.commons.lang3.StringEscapeUtils;
 
 public class DiffDocumentProducer implements Runnable {
   private static class Prop {
