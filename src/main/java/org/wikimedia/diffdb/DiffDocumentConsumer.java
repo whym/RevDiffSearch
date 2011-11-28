@@ -20,6 +20,7 @@ public class DiffDocumentConsumer implements Runnable {
   }
   public void run() {
 		try {
+			// FIXME: currently a consumer needs to be started after having at least one producer is running, otherwise it immediately finishes. it should wait.
 			while ( this.prodq.size() > 0  ||  this.producers.size() > 0 ) {
 				Document doc = this.prodq.take();
 				writer.addDocument(doc);

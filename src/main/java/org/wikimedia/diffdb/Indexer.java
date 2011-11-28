@@ -10,6 +10,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
@@ -21,76 +23,34 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.Version;
 
 public class Indexer {
-	private static final int NTHREADS = 15;
-	private static final long REPORT_DURATION_MSECS = 10000L;
-	public static String indexDir = null;
-	public static String dataDir = null;
+	private static final Logger logger = Logger.getLogger(Indexer.class.getName());
 
-	private static void indexDocuments(ExecutorService executor,
-																		 BlockingQueue<Document> prodq,
-																		 BlockingQueue<Document> poolq,
-																		 List<Runnable> producers,
-																		 IndexWriter writer, File file) throws IOException {
-		if (file.canRead()) {
-			if (file.isDirectory()) {
-				for (File f : file.listFiles()) {
-					indexDocuments(executor, prodq, poolq, producers, writer, f);
-				}
-			} else {
-				executor.execute(new DiffDocumentProducer(new FileReader(file), prodq, poolq, producers));
-				executor.execute(new DiffDocumentConsumer(writer, prodq, poolq, producers));
-			}
-		}
-	}
-
-	public static void main(String[] args) throws IOException,
-	InterruptedException {
-		if (args.length != 2) {
-			System.err.println("Usage: java " + Indexer.class.getName()
-					+ " <index dir> <data dir>");
-			System.exit(1);
-		}
-		indexDir = args[0];
-		dataDir = args[1];
-		double ramBufferSizeMB = 1024;
-		int poolsize = NTHREADS * 10000;
-		{
-			String s;
-			if ( (s = System.getProperty("poolsize")) != null ) {
-				poolsize = Integer.parseInt(s);
-			}
-		}
-
-		final long start = System.currentTimeMillis();
-
-		final ExecutorService executor = Executors.newFixedThreadPool(NTHREADS);
-		Directory dir = new NIOFSDirectory(new File(indexDir), null);
-		LogDocMergePolicy lmp = new LogDocMergePolicy();
-		lmp.setUseCompoundFile(true); // This might fix the too many open files,
-		// see
-		// http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
-
-		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34,
-				new SimpleNGramAnalyzer(3));
-
-		cfg.setOpenMode(OpenMode.CREATE_OR_APPEND); // http://lucene.apache.org/java/3_2_0/api/core/org/apache/lucene/index/IndexWriterConfig.OpenMode.html#CREATE_OR_APPEND
-		cfg.setRAMBufferSizeMB(ramBufferSizeMB);
-		cfg.setMergePolicy(lmp);
-
-		final IndexWriter writer = new IndexWriter(dir, cfg);
-		final BlockingQueue<Document> prodq = new ArrayBlockingQueue<Document>(poolsize);
-		final BlockingQueue<Document> poolq = new ArrayBlockingQueue<Document>(poolsize);
-		try {
-			// run a thread that reports the progress periodically
-			new Thread(new Runnable() {
+	private final long reportInterval;
+	private final IndexWriter writer;
+	private final ExecutorService executor;
+	private final BlockingQueue<Document> prodq;
+	private final BlockingQueue<Document> poolq;
+	private final List<Runnable> producers;
+	private final long start;
+	
+	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration) {
+		this.start = System.currentTimeMillis();
+		this.writer = writer;
+		this.reportInterval = duration;
+		this.executor = Executors.newFixedThreadPool(nthreads);
+		this.prodq = new ArrayBlockingQueue<Document>(poolsize);
+		this.poolq = new ArrayBlockingQueue<Document>(poolsize);
+		this.producers = Collections.synchronizedList(new ArrayList<Runnable>());
+		// run a thread that reports the progress periodically
+		new Thread(new Runnable() {
 				public void run() {
 					try {
 						while (!executor.isTerminated()) {
 							System.err.println("" + writer.numDocs()
-									+ " documents have been indexed in "
-									+ (System.currentTimeMillis() - start)
-																 + " msecs (prod " + prodq.size() + ")");
-							Thread.sleep(REPORT_DURATION_MSECS);
+																 + " documents have been indexed in "
+																 + (System.currentTimeMillis() - start)
+																 + " msecs (products " + prodq.size() + ", producers " + producers.size() +  ")");
+							Thread.sleep(reportInterval);
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -100,29 +60,92 @@ public class Indexer {
 				}
 			}).start();
 
-			while ( poolq.remainingCapacity() > 0 ) {
-				poolq.add(DiffDocumentProducer.createEmptyDocument());
-			}
-			indexDocuments(executor,
-										 prodq,
-										 poolq,
-										 Collections.synchronizedList(new ArrayList<Runnable>()),
-										 writer,
-										 new File(dataDir));
+		// initialize queues
+		while ( this.poolq.remainingCapacity() > 0 ) {
+			this.poolq.add(DiffDocumentProducer.createEmptyDocument());
+		}
+	}
+
+
+	public void finish() throws InterruptedException, IOException {
+		try {
 			// This will make the executor accept no new threads
 			// and finish all existing threads in the queue
-			executor.shutdown();
-
+			this.executor.shutdown();
+			
 			// Wait until all threads are finish
-			while (!executor.isTerminated()) {
+			while (!this.executor.isTerminated()) {
 				Thread.sleep(1000L);
 			}
 			System.out.println("Finished all threads");
-			// writer.optimize();
-			System.out.println("Writing " + writer.numDocs() + " documents.");
-
+			// this.writer.optimize();
+			System.out.println("Writing " + this.writer.numDocs() + " documents.");
 		} finally {
-			writer.close();
+			this.writer.close();
+		}
+	}
+	
+	public void indexDocuments(File file) throws IOException {
+		if (file.canRead()) {
+			if (file.isDirectory()) {
+				for (File f : file.listFiles()) {
+					indexDocuments(f);
+				}
+			} else {
+				executor.execute(new DiffDocumentProducer(new FileReader(file), this.prodq, this.poolq, this.producers));
+				executor.execute(new DiffDocumentConsumer(this.writer, this.prodq, this.poolq, this.producers));
+			}
+		}
+	}
+
+	public static void main(String[] args) throws IOException, InterruptedException {
+		// load configurations
+		int nThreads = 15;
+		long reportInterval = 10000L;
+		if (args.length != 2) {
+			System.err.println("Usage: java " + Indexer.class.getName()
+												 + " <index dir> <data dir>");
+			System.exit(1);
+		}
+		final long start = System.currentTimeMillis();
+		String indexDir = args[0];
+		String dataDir = args[1];
+		double ramBufferSizeMB = 1024;
+		int poolsize = nThreads * 10000;
+		{
+			String s;
+			if ( (s = System.getProperty("poolSize")) != null ) {
+				poolsize = Integer.parseInt(s);
+			}
+			if ( (s = System.getProperty("reportInterval")) != null ) {
+				reportInterval = Integer.parseInt(s);
+			}
+			if ( (s = System.getProperty("nThreads")) != null ) {
+				nThreads = Integer.parseInt(s);
+			}
+		}
+
+		// setup the writer configuration
+		Directory dir = new NIOFSDirectory(new File(indexDir), null);
+		LogDocMergePolicy lmp = new LogDocMergePolicy();
+		lmp.setUseCompoundFile(true); // This might fix the too many open files,
+		// see
+		// http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
+
+		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34,
+																									new SimpleNGramAnalyzer(3));
+		cfg.setOpenMode(OpenMode.CREATE_OR_APPEND); // http://lucene.apache.org/java/3_2_0/api/core/org/apache/lucene/index/IndexWriterConfig.OpenMode.html#CREATE_OR_APPEND
+		cfg.setRAMBufferSizeMB(ramBufferSizeMB);
+		cfg.setMergePolicy(lmp);
+
+		Indexer indexer = null;
+		try {
+			indexer = new Indexer(new IndexWriter(dir, cfg), nThreads, poolsize, reportInterval);
+			indexer.indexDocuments(new File(dataDir));
+		} finally {
+			if ( indexer != null ) {
+				indexer.finish();
+			}
 			System.err.println("Finished in "
 					+ (System.currentTimeMillis() - start) + " msecs");
 		}
