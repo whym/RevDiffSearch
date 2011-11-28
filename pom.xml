@@ -63,7 +63,7 @@
           <configuration>
             <archive>
               <manifest>
-                <mainClass>org.wikimedia.diffdb.Main</mainClass>
+                <mainClass>org.wikimedia.diffdb.Indexer</mainClass>
               </manifest>
             </archive>
           </configuration>

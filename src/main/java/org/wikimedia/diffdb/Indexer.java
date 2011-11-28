@@ -20,7 +20,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.Version;
 
-public class Main {
+public class Indexer {
 	private static final int NTHREADS = 15;
 	private static final long REPORT_DURATION_MSECS = 10000L;
 	public static String indexDir = null;
@@ -46,7 +46,7 @@ public class Main {
 	public static void main(String[] args) throws IOException,
 	InterruptedException {
 		if (args.length != 2) {
-			System.err.println("Usage: java " + Main.class.getName()
+			System.err.println("Usage: java " + Indexer.class.getName()
 					+ " <index dir> <data dir>");
 			System.exit(1);
 		}
