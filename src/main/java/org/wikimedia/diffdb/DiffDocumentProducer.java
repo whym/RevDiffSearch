@@ -90,7 +90,7 @@ public class DiffDocumentProducer implements Runnable {
         for (int i = 0; i < propTypes.length; ++i) {
           Prop proptype = propTypes[i];
           Field field = (Field) doc.getFieldable(proptype.name());
-          field.setValue(props[i]);
+          field.setValue(parseString(props[i]));
         }
         // extract additions and removals and store them in the buffers
         abuff.delete(0, abuff.length());
@@ -103,7 +103,7 @@ public class DiffDocumentProducer implements Runnable {
             System.err.println(e + ": " + props[0] + ", " + props[i]);
             continue;
           }
-          ("-1".equals(p[1]) ? rbuff: abuff).append(p[0] + p[1] + StringEscapeUtils.unescapeJava(p[2]) + "\t");
+          ("-1".equals(p[1]) ? rbuff: abuff).append(p[0] + p[1] +p[2] + "\t");
         }
         ((Field)doc.getFieldable("timestamp")).setValue(formatter.format(new Date(Long.parseLong(props[4])*1000L)));
         ((Field)doc.getFieldable("added")).setValue(abuff.toString());
@@ -138,6 +138,17 @@ public class DiffDocumentProducer implements Runnable {
       this.producers.remove(this);
     }
   }
+
+	public static String parseString(String str) {
+		if ( str.charAt(0) == 'u' && str.charAt(1) == '\'' ) {
+			return str.substring(2, str.length() - 1);
+		} else if ( str.charAt(0) == '\'' ) {
+			return str.substring(1, str.length() - 1);
+		} else {
+			return str;
+		}
+	}
+
 	private static String[] parseDiff(String str) {
 		int i = str.indexOf(":");
 		int j = str.indexOf(":", i+1);
@@ -151,7 +162,7 @@ public class DiffDocumentProducer implements Runnable {
 			return new String[]{
 				str.substring(0,i),
 				str.substring(i+1,j),
-				str.substring(j+3, str.length() - 1)
+				StringEscapeUtils.unescapeJava(parseString(str.substring(j+1)))
 			};
 		}
 	}
