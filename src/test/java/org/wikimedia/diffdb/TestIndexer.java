@@ -65,7 +65,7 @@ public class TestIndexer {
     assertEquals("Accessiblecomputing", reader.document(findDocument(searcher, new Term("rev_id", "233192"))).get("title"));
     assertEquals("0", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("namespace"));
     assertEquals("0", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("namespace"));
-    assertEquals("Automated conversion", reader.document(findDocument(searcher, new Term("rev_", "18201"))).get("comment"));
+    assertEquals("Automated conversion", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("comment"));
     //System.err.println(reader.document(findDocument(searcher, new Term("rev_id", "18201"))).getFields());
   }
 }
