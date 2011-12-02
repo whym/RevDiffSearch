@@ -64,7 +64,7 @@ public class TestSearcherDaemon {
     final IndexSearcher searcher = new IndexSearcher(reader);
     new Thread(new SearcherDaemon(new InetSocketAddress(8080), searcher, new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(3)))).start();
 
-    Thread.sleep(500L);
+    Thread.sleep(1000L);
 
     // query "/Todo" and receive rev_ids
     {
