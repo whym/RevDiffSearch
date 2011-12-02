@@ -80,6 +80,7 @@ public class Searcher {
 		boolean raw = false;
 		String queryString = null;
 		int hitsPerPage = 10;
+    boolean exact = false;
 
 		for (int i = 0; i < args.length; i++) {
 			if ("-index".equals(args[i])) {
@@ -99,6 +100,8 @@ public class Searcher {
 				i++;
 			} else if ("-raw".equals(args[i])) {
 				raw = true;
+			} else if ("-exact".equals(args[i])) {
+				exact = true;
 			} else if ("-paging".equals(args[i])) {
 				hitsPerPage = Integer.parseInt(args[i + 1]);
 				if (hitsPerPage <= 0) {
@@ -156,8 +159,9 @@ public class Searcher {
 							+ (end.getTime() - start.getTime()) + "ms");
 				}
 
-				doPagingSearch(in, searcher, query, hitsPerPage, raw,
-						queries == null && queryString == null);
+				doPagingSearch(in, searcher, query, hitsPerPage, raw, exact,
+                       queryString == null? line: queryString,
+                       queries == null && queryString == null);
 
 			} catch (ParseException e) {
 				System.out
@@ -203,18 +207,17 @@ public class Searcher {
 	}
 
 
-	public static void writeResults(Query query, IndexSearcher searcher,
-			TopDocs results) {
-		String sFileName = FileUtils.createFilename(query.toString());
-		int max_hits = getMAX_HITS();
-		int hits = results.totalHits;
+	public static void writeResults(String queryStr, IndexReader reader,
+                                  int hits) {
+		String sFileName = FileUtils.createFilename(queryStr);
+    int max_hits = getMAX_HITS();
 		CSVWriter writer = null;
 		try {
 			writer = new CSVWriter(new FileWriter(sFileName), '\t');
-      Collection<String> fieldNames = searcher.getIndexReader().getFieldNames(IndexReader.FieldOption.ALL);
+      Collection<String> fieldNames = reader.getFieldNames(IndexReader.FieldOption.ALL);
       writer.writeNext(fieldNames.toArray(new String[fieldNames.size()]));
 			for (int i = 0; i < hits && i <= max_hits; i++) {
-        Document doc = searcher.doc(i);
+        Document doc = reader.document(i);
         List<String> vals = new ArrayList<String>();
         for ( String name: fieldNames ) {
 					vals.add(StringEscapeUtils
@@ -251,8 +254,8 @@ public class Searcher {
 	}
 
 	public static void doPagingSearch(BufferedReader in,
-			IndexSearcher searcher, Query query, int hitsPerPage, boolean raw,
-			boolean interactive) throws IOException {
+                                    IndexSearcher searcher, Query query, int hitsPerPage, boolean raw, boolean exact,
+                                    String queryStr, boolean interactive) throws IOException {
 		// Collect enough docs to show 5 pages
 		TopDocs results = searcher.search(query, 5 * hitsPerPage);
 		ScoreDoc[] hits = results.scoreDocs;
@@ -282,6 +285,15 @@ public class Searcher {
 			end = Math.min(hits.length, start + hitsPerPage);
 
 			for (int i = start; i < end; i++) {
+
+        if ( exact ) {
+          // check if the document really contains the query string
+          // FIXME: doesn't work for any complex ("field:value" type) query
+          if (searcher.doc(hits[i].doc).getField("added").stringValue().indexOf(queryStr) < 0 ) {
+            continue;
+          }
+        }
+
 				if (raw) { // output raw format
 					System.out.println("doc=" + hits[i].doc + " score="
 							+ hits[i].score);
@@ -338,7 +350,7 @@ public class Searcher {
 						}
 						break;
 					} else if (line.charAt(0) == 'w') {
-						writeResults(query, searcher, results);
+						writeResults(query.toString(), searcher.getIndexReader(), results.totalHits);
 
 					} else {
 						try {
