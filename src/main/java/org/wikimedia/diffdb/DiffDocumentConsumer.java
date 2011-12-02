@@ -13,7 +13,7 @@ public class DiffDocumentConsumer implements Runnable {
   private final IndexWriter writer;
 	private final List<Runnable> producers;
   public DiffDocumentConsumer(IndexWriter writer, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq, List<Runnable> producers) {
-		this.writer = writer;
+		this.writer = writer; 
     this.prodq = prodq;
     this.poolq = poolq;
 		this.producers = producers;
