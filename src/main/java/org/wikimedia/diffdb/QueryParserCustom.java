@@ -2,29 +2,31 @@ package org.wikimedia.diffdb;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.util.AttributeImpl;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.analysis.ngram.NGramTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.wikimedia.diffdb.SearchProperty.Property;
 
 
-public class QueryParserCustom extends QueryParser {
+public class QueryParserCustom {
 
+	public Version matchVersion = Version.LUCENE_34;
+	public Analyzer analyzer; 
+	public String querystr;
 	
-	public QueryParserCustom(Version matchVersion, String f, Analyzer a) {
-		super(matchVersion, f, a);
-		// TODO Auto-generated constructor stub
-	}
 	
 	private HashMap<String, String> deconstruct(String query) {
 		HashMap<String, String> terms = new HashMap<String, String>();
@@ -62,40 +64,56 @@ public class QueryParserCustom extends QueryParser {
 	        if (prop.pattern().equals(SearchProperty.STRING_PATTERN)) {
 	        	String term = pairs.getValue();
 	        	term = term.replace(pairs.getKey()+":","");	//Strip out the name of the property to ngram
-	        	String ngram = createNgram(term);
-	        	query = String.format("%s %s:%s", query,pairs.getKey(), ngram.toString());
+	        	List<String> ngrams = createNgram(term);
+	        	for (String ngram : ngrams) {
+	        		query = String.format("%s %s:%s", query,pairs.getKey(), ngram.toString());
+	        	}
+	        	System.out.println(query);
 	        } else {
 	        	
 	        }
 	        //System.out.println(pairs.getKey() + " = " + pairs.getValue());
 	        it.remove(); // avoids a ConcurrentModificationException
 	    }
- 			    
+ 		System.out.println("FINAL RESULT:" + query);
 		return query;
 	}
 	
-	private String createNgram(String term) {
-		StringReader reader = new StringReader(term);
-		NGramTokenizer tokenizer = new NGramTokenizer(reader,3,3);
-		String ngram = "";
-		Iterator<AttributeImpl> it = tokenizer.getAttributeImplsIterator();
-		while (it.hasNext()) { 
-				ngram= ngram + it.next().toString();
+	private List<String> createNgram(String phrase) {
+	    TokenStream ts = new SimpleNGramAnalyzer(3).tokenStream("default", new StringReader(phrase));
+	    PositionIncrementAttribute posIncr = (PositionIncrementAttribute)
+	      ts.addAttribute(PositionIncrementAttribute.class);
+	    CharTermAttribute term = (CharTermAttribute)ts.addAttribute(CharTermAttribute.class);
+	    List<Integer> increments = new ArrayList<Integer>();
+	    List<String> ngrams = new ArrayList<String>();
+	    try {
+			while (ts.incrementToken()) {
+			  ngrams.add(term.toString());
+			  increments.add(posIncr.getPositionIncrement());
+			
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return ngram;
+	    
+		return ngrams;
 	}
 	
-	@Override
-	public Query parse(String querystr) {
+	
+	public Query construct(String querystr)  {
 		HashMap<String, String> terms = deconstruct(querystr);
-		String query = reconstruct(terms);
-		Query q = null;
+		String queryterms = reconstruct(terms);
+		Query query = null;
+		QueryParser qp =  new QueryParser(this.matchVersion, queryterms, this.analyzer);
 		try {
-			q = Query(query);
+			queryterms = "added: foo";
+			query = qp.parse(queryterms);
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return q;
+		System.out.println(query.toString());
+		return query;
 	}
 }
