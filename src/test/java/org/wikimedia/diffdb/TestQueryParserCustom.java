@@ -12,7 +12,7 @@ public class TestQueryParserCustom {
 	public QueryParserCustom qp; 
 	
 	public TestQueryParserCustom() {
-		this.qp = new QueryParserCustom();
+		this.qp = new QueryParserCustom(new SimpleNGramAnalyzer(3));
 	}
 	
 	@Test

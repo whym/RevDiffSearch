@@ -23,10 +23,12 @@ import org.wikimedia.diffdb.SearchProperty.Property;
 
 public class QueryParserCustom {
 
-	public Version matchVersion = Version.LUCENE_34;
-	public Analyzer analyzer; 
-	public String querystr;
+	public final Version matchVersion = Version.LUCENE_34;
+	public final Analyzer analyzer; 
 	
+  public QueryParserCustom(Analyzer analyzer) {
+    this.analyzer = analyzer;
+  }
 	
 	private HashMap<String, String> deconstruct(String query) {
 		HashMap<String, String> terms = new HashMap<String, String>();
@@ -105,6 +107,7 @@ public class QueryParserCustom {
 		HashMap<String, String> terms = deconstruct(querystr);
 		String queryterms = reconstruct(terms);
 		Query query = null;
+    System.err.println("----" + this.matchVersion + queryterms + this.analyzer);//!
 		QueryParser qp =  new QueryParser(this.matchVersion, queryterms, this.analyzer);
 		try {
 			queryterms = "added: foo";
