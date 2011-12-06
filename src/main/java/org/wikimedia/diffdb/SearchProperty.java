@@ -10,7 +10,7 @@ import org.apache.lucene.document.Field.Store;
 
 public class SearchProperty {
 
-	public static final Pattern STRING_PATTERN = Pattern.compile(":[a-z0-9]");
+	public static final Pattern STRING_PATTERN = Pattern.compile(":[a-z0-9]*");
 	public static final Pattern TIMESTAMP_PATTERN = Pattern
 			.compile("timestamp:\\[[0-9\\-\\sTO\\s]*\\]");
 	public static final Pattern DIGIT_PATTERN = Pattern.compile(":[0-9]*\\s");

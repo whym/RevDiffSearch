@@ -33,24 +33,38 @@ public class QueryParserCustom {
 	private HashMap<String, String> deconstruct(String query) {
 		HashMap<String, String> terms = new HashMap<String, String>();
 		String term = null;
+		StringBuilder sb = new StringBuilder();
+		sb.append(query);
 		SearchProperty sp = new SearchProperty();
 		Map<String, Property> properties = sp.init();
 		Iterator<Entry<String, Property>> it = properties.entrySet().iterator();
 		while (it.hasNext()){
 			Property prop = it.next().getValue();
-			Matcher match = prop.pattern().matcher(query);
-			if (match.find()) {
-				int start = match.start();
-				int end =  match.end();
-				term = query.substring(start, end);
-				query = query.replace(term, "");
+			if (sb.indexOf(prop.name()) >-1) {
+				Matcher match = prop.pattern().matcher(sb);
+				if (match.find()) {
+					int start = match.start() +1;
+					int end =  match.end();
+					term = sb.substring(start, end);
+					start = start - prop.name().length() -1;
+					System.out.println(sb.toString());
+					//This is ridiculous
+					sb= sb.replace(start, end-1, "");
+					sb= sb.delete(start, end-1);
+					System.out.println(sb.toString());
+					//replace(String.format("%s%s",prop.name(), term), "");
+				}	
 			}
+			
 			if (prop.isAnalyzed() && prop.isStored() && term !=null) {
 				terms.put(prop.name(), term);
+				term = null;
 			}
 		}
 		// what remains is the main query
-		terms.put("added", query);
+		if (!sb.toString().equals("")){
+			terms.put("added", sb.toString());
+		}
 		return terms;
 	}
 	
@@ -65,19 +79,19 @@ public class QueryParserCustom {
 	        Property prop = properties.get(pairs.getKey());
 	        if (prop.pattern().equals(SearchProperty.STRING_PATTERN)) {
 	        	String term = pairs.getValue();
-	        	term = term.replace(pairs.getKey()+":","");	//Strip out the name of the property to ngram
+	        	//term = term.replace(pairs.getKey()+":","");	//Strip out the name of the property to ngram
 	        	List<String> ngrams = createNgram(term);
 	        	for (String ngram : ngrams) {
 	        		query = String.format("%s %s:%s", query,pairs.getKey(), ngram.toString());
 	        	}
-	        	System.out.println(query);
+	        	//System.out.println(query);
 	        } else {
 	        	
 	        }
 	        //System.out.println(pairs.getKey() + " = " + pairs.getValue());
 	        it.remove(); // avoids a ConcurrentModificationException
 	    }
- 		System.out.println("FINAL RESULT:" + query);
+ 		//System.out.println("FINAL RESULT:" + query);
 		return query;
 	}
 	
@@ -110,7 +124,6 @@ public class QueryParserCustom {
     System.err.println("----" + this.matchVersion + queryterms + this.analyzer);//!
 		QueryParser qp =  new QueryParser(this.matchVersion, queryterms, this.analyzer);
 		try {
-			queryterms = "added: foo";
 			query = qp.parse(queryterms);
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block

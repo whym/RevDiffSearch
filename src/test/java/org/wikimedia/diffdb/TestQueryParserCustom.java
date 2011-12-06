@@ -4,6 +4,7 @@ import org.wikimedia.diffdb.QueryParserCustom;
 import static org.junit.Assert.*;
 
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.MultiTermQuery;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -19,7 +20,7 @@ public class TestQueryParserCustom {
 	public void testQueryNoExplicitField() {
 		String querystr = "foo";
 		Query query = qp.construct(querystr);
-		assertEquals(query.toString(), "foo");
+		assertEquals(query.toString(), "added:foo");
 	}
 	
 	@Test
@@ -33,7 +34,8 @@ public class TestQueryParserCustom {
 	public void testQueryNoExplicitFieldCompound() {
 		String querystr = "foo bar";
 		Query query = qp.construct(querystr);
-		assertEquals(query.toString(), "foo oo o b  ba bar");
+		assertEquals(query.getClass(), MultiTermQuery.class);
+		assertEquals(query.toString(), "added:foo oo o b  ba bar");
 	}
 	
 	@Test
