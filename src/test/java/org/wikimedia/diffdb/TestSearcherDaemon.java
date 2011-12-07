@@ -61,7 +61,7 @@ public class TestSearcherDaemon {
     indexer.finish();
 
     IndexReader reader = IndexReader.open(dir);
-    final IndexSearcher searcher = new IndexSearcher(reader);
+    IndexSearcher searcher = new IndexSearcher(reader);
     new Thread(new SearcherDaemon(new InetSocketAddress(8080), searcher, new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(3)))).start();
 
     Thread.sleep(1000L);
