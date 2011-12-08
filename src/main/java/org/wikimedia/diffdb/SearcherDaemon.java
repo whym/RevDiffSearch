@@ -116,7 +116,6 @@ public class SearcherDaemon implements Runnable {
 				} else {
 					this.hits.set(doc + this.docBase);
 				}
-				System.err.println("check " + doc);
 			} catch (IOException e) {
 			}
 		}
@@ -137,7 +136,6 @@ public class SearcherDaemon implements Runnable {
 
 		private JSONArray writeCollapsedHitsByTimestamp(BitSet hits, List<String> fields, Pattern pattern) throws IOException, JSONException {
 			Map<String, JSONArray> map = new TreeMap<String, JSONArray>();
-			System.err.println("collapse " + hits + fields + pattern);//!
 			for(int i = hits.nextSetBit(0); i >= 0; i = hits.nextSetBit(i+1) ) {
 				Document doc = this.searcher.doc(i);
 				JSONArray array = new JSONArray();
@@ -156,10 +154,8 @@ public class SearcherDaemon implements Runnable {
 					ls = new JSONArray();
 					map.put(key,ls);
 				}
-				System.err.println(key + array);//!
 				ls.put(array);
 			}
-			System.err.println(map);//!
 			JSONArray ret = new JSONArray();
 			for ( Map.Entry<String, JSONArray> ent: map.entrySet() ) {
 				ret.put(new JSONArray(new Object[]{ent.getKey(), ent.getValue()}));
@@ -213,7 +209,6 @@ public class SearcherDaemon implements Runnable {
 						fields.add(fields_.getString(i));
 					}
 				}
-				System.err.println("f " + fields + fields_);//!
 				Pattern cpattern;
 				if ( "no".equals(hitsper) || (cpattern = collapsePatterns.get(hitsper)) == null ) {
 					if ( fields.size() > 0 ) {
