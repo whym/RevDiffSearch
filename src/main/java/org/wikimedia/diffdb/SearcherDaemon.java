@@ -7,10 +7,14 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.BitSet;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.lucene.queryParser.QueryParser;
@@ -39,8 +43,15 @@ import org.jboss.netty.handler.codec.string.StringEncoder;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
+import org.json.JSONException;
 
 public class SearcherDaemon implements Runnable {
+	private static final Map<String, Pattern> collapsePatterns;
+	static {
+		collapsePatterns = new TreeMap<String, Pattern>();
+		collapsePatterns.put("day",    Pattern.compile("\\d\\d\\d\\d-\\d\\d-\\d\\d"));
+		collapsePatterns.put("month",  Pattern.compile("\\d\\d\\d\\d-\\d\\d"));
+	}
 	private final InetSocketAddress address;
 	private final IndexSearcher searcher;
 	private final QueryParser parser;
@@ -81,12 +92,12 @@ public class SearcherDaemon implements Runnable {
 	private static class MyCollector extends Collector {
 		private final IndexSearcher searcher;
 		private final String query;
-		private final BitSet bits;
+		private final BitSet hits;
 		private int docBase;
 		public MyCollector(IndexSearcher searcher, String query) {
 			this.query = "";
 			this.searcher = searcher;
-			this.bits = new BitSet(searcher.getIndexReader().maxDoc());
+			this.hits = new BitSet(searcher.getIndexReader().maxDoc());
 		}
 		public boolean acceptsDocsOutOfOrder() {
 			return true;
@@ -101,15 +112,16 @@ public class SearcherDaemon implements Runnable {
 			try {
 				if ( ( StringEscapeUtils.unescapeJava(searcher.doc(doc).getField("added").stringValue()).indexOf(this.query) < 0
 							 && StringEscapeUtils.unescapeJava(searcher.doc(doc).getField("removed").stringValue()).indexOf(this.query) < 0  ) ) {
-					this.bits.clear(doc + this.docBase);
+					this.hits.clear(doc + this.docBase);
 				} else {
-					this.bits.set(doc + this.docBase);
+					this.hits.set(doc + this.docBase);
 				}
+				System.err.println("check " + doc);
 			} catch (IOException e) {
 			}
 		}
 		public BitSet getHits() {
-			return this.bits;
+			return this.hits;
 		}
 	}
 
@@ -123,8 +135,51 @@ public class SearcherDaemon implements Runnable {
       this.parser = parser;
     }
 
-		// private Map<String,JSONArray> collapse_hits(Iterable<ScoreDoc> docs) {
-		// }
+		private JSONArray writeCollapsedHitsByTimestamp(BitSet hits, List<String> fields, Pattern pattern) throws IOException, JSONException {
+			Map<String, JSONArray> map = new TreeMap<String, JSONArray>();
+			System.err.println("collapse " + hits + fields + pattern);//!
+			for(int i = hits.nextSetBit(0); i >= 0; i = hits.nextSetBit(i+1) ) {
+				Document doc = this.searcher.doc(i);
+				JSONArray array = new JSONArray();
+				for ( String f: fields ) {
+					array.put(StringEscapeUtils.unescapeJava(doc.getField(f).stringValue()));
+				}
+				Matcher matcher = pattern.matcher(doc.getField("timestamp").stringValue());
+				String key;
+				if (!matcher.find()) {
+					key = "none";
+				} else {
+					key = matcher.group(0);
+				}
+				JSONArray ls;
+				if ( (ls = map.get(key)) == null ) {
+					ls = new JSONArray();
+					map.put(key,ls);
+				}
+				System.err.println(key + array);//!
+				ls.put(array);
+			}
+			System.err.println(map);//!
+			JSONArray ret = new JSONArray();
+			for ( Map.Entry<String, JSONArray> ent: map.entrySet() ) {
+				ret.put(new JSONArray(new Object[]{ent.getKey(), ent.getValue()}));
+			}
+			return ret;
+		}
+
+		private JSONArray writeHits(BitSet hits, List<String> fields) throws IOException {
+			// collect field values
+			JSONArray ret = new JSONArray();
+			for(int i = hits.nextSetBit(0); i >= 0; i = hits.nextSetBit(i+1) ) {
+				Document doc = this.searcher.doc(i);
+				JSONArray array = new JSONArray();
+				for ( String f: fields ) {
+					array.put(StringEscapeUtils.unescapeJava(doc.getField(f).stringValue()));
+				}
+				ret.put(array);
+			}
+			return ret;
+		}
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
@@ -132,40 +187,58 @@ public class SearcherDaemon implements Runnable {
       String q = ((ChannelBuffer)e.getMessage()).toString(Charset.defaultCharset());
 			try {
 				JSONObject json = new JSONObject(q);
-				System.err.println("received: " + json.toString(2));//!
+				System.err.println("received query: " + json.toString(2));//!
 				String query   = json.getString("q");						 // to be fed to QueryParser
-				String hitsper = json.optString("collapse_hits", "no"); // TODO: no or day or week or month
+				String hitsper = json.optString("collapse_hits", "no"); // no or day or month
 				int maxrevs    = json.optInt("max_revs", 100);
 				double version = json.optDouble("version", 0.1);		// 
-				JSONArray fields_ = json.optJSONArray("fields"); // if null, rev_id only
+				JSONArray fields_ = json.optJSONArray("fields"); // the fields to be given in the output. if empty, only number of hits will be emitted
 				MyCollector collector = new MyCollector(this.searcher, query);
 				this.searcher.search(this.parser.parse(query), collector);
-				BitSet bits = collector.getHits();
+				BitSet hits = collector.getHits();
 				JSONObject ret = new JSONObject();
-				ret.put("hits_all", bits.cardinality());
+
+				ret.put("hits_all", hits.cardinality());
 
 				List<String> fields = new ArrayList<String>();
 				if ( fields_ == null ) {
-					fields = Collections.singletonList("rev_id");
+					String f = json.optString("fields");
+					if ( f == null  ||  "".equals(f) ) {
+						fields = Collections.emptyList();
+					} else {
+						fields = Collections.singletonList(f);
+					}
 				} else {
 					for ( int i = 0; i < fields_.length(); ++i ) {
 						fields.add(fields_.getString(i));
 					}
 				}
-				// collect field values
-				JSONArray hits = new JSONArray();
-				for(int i = bits.nextSetBit(0); i >= 0; i = bits.nextSetBit(i+1) ) {
-					Document doc = this.searcher.doc(i);
-					JSONArray array = new JSONArray();
-					for ( String f: fields ) {
-						array.put(StringEscapeUtils.unescapeJava(doc.getField(f).stringValue()));
+				System.err.println("f " + fields + fields_);//!
+				Pattern cpattern;
+				if ( "no".equals(hitsper) || (cpattern = collapsePatterns.get(hitsper)) == null ) {
+					if ( fields.size() > 0 ) {
+						ret.put("hits", writeHits(hits, fields));
 					}
-					hits.put(array);
+				} else {
+					JSONArray hitEntries = writeCollapsedHitsByTimestamp(hits, fields, cpattern);
+					if ( fields.size() > 0 ) {
+						ret.put("hits", hitEntries);
+					} else {
+						JSONArray hits_ = new JSONArray();
+						System.err.println("hits " + hitEntries);
+						for ( int i = 0; i < hitEntries.length(); ++i ) {
+							hits_.put(new JSONArray(new Object[]{
+										hitEntries.getJSONArray(i).getString(0),
+										hitEntries.getJSONArray(i).getJSONArray(1).length(),
+									}));
+						}
+						ret.put("hits", hits_);
+					}
 				}
-				ret.put("hits", hits);
 				e.getChannel().write(ret.toString());
       } catch (Exception ex) {
         e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
+				ex.printStackTrace();
       }
     }
 
