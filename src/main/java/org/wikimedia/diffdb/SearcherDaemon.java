@@ -1,6 +1,7 @@
 package org.wikimedia.diffdb;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -9,14 +10,19 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.BitSet;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.TopScoreDocCollector;
+import org.apache.lucene.search.TopDocsCollector;
+import org.apache.lucene.search.Scorer;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.lucene.document.Document;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -72,6 +78,41 @@ public class SearcherDaemon implements Runnable {
     bootstrap.bind(address);
 	}
 
+	private static class MyCollector extends Collector {
+		private final IndexSearcher searcher;
+		private final String query;
+		private final BitSet bits;
+		private int docBase;
+		public MyCollector(IndexSearcher searcher, String query) {
+			this.query = "";
+			this.searcher = searcher;
+			this.bits = new BitSet(searcher.getIndexReader().maxDoc());
+		}
+		public boolean acceptsDocsOutOfOrder() {
+			return true;
+		}
+		public void setNextReader(IndexReader reader, int docBase) {
+			this.docBase = docBase;
+		}
+		public void setScorer(Scorer scorer) {
+		}
+		public void collect(int doc) {
+			// TODO: it must work for other fileds than 'added' and 'removed'
+			try {
+				if ( ( StringEscapeUtils.unescapeJava(searcher.doc(doc).getField("added").stringValue()).indexOf(this.query) < 0
+							 && StringEscapeUtils.unescapeJava(searcher.doc(doc).getField("removed").stringValue()).indexOf(this.query) < 0  ) ) {
+					this.bits.clear(doc + this.docBase);
+				} else {
+					this.bits.set(doc + this.docBase);
+				}
+			} catch (IOException e) {
+			}
+		}
+		public BitSet getHits() {
+			return this.bits;
+		}
+	}
+
   public static class SearcherHandler extends SimpleChannelUpstreamHandler {
     private static final Logger logger = Logger.getLogger(SearcherHandler.class.getName());
     private final IndexSearcher searcher;
@@ -82,6 +123,9 @@ public class SearcherDaemon implements Runnable {
       this.parser = parser;
     }
 
+		// private Map<String,JSONArray> collapse_hits(Iterable<ScoreDoc> docs) {
+		// }
+
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
       // very tentative format of query: max-results<tab>query
@@ -91,13 +135,14 @@ public class SearcherDaemon implements Runnable {
 				System.err.println("received: " + json.toString(2));//!
 				String query   = json.getString("q");						 // to be fed to QueryParser
 				String hitsper = json.optString("collapse_hits", "no"); // TODO: no or day or week or month
-				int maxrevs    = json.optInt("max_revs", 100);			// 
+				int maxrevs    = json.optInt("max_revs", 100);
 				double version = json.optDouble("version", 0.1);		// 
 				JSONArray fields_ = json.optJSONArray("fields"); // if null, rev_id only
-				TopDocs results = this.searcher.search(this.parser.parse(query), maxrevs);
-				
+				MyCollector collector = new MyCollector(this.searcher, query);
+				this.searcher.search(this.parser.parse(query), collector);
+				BitSet bits = collector.getHits();
 				JSONObject ret = new JSONObject();
-				ret.put("hits_all", results.totalHits);
+				ret.put("hits_all", bits.cardinality());
 
 				List<String> fields = new ArrayList<String>();
 				if ( fields_ == null ) {
@@ -109,10 +154,11 @@ public class SearcherDaemon implements Runnable {
 				}
 				// collect field values
 				JSONArray hits = new JSONArray();
-				for ( ScoreDoc doc: results.scoreDocs ) {
+				for(int i = bits.nextSetBit(0); i >= 0; i = bits.nextSetBit(i+1) ) {
+					Document doc = this.searcher.doc(i);
 					JSONArray array = new JSONArray();
 					for ( String f: fields ) {
-						array.put(StringEscapeUtils.unescapeJava(this.searcher.doc(doc.doc).getField(f).stringValue()));
+						array.put(StringEscapeUtils.unescapeJava(doc.getField(f).stringValue()));
 					}
 					hits.put(array);
 				}
