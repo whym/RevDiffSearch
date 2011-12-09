@@ -13,10 +13,13 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.BitSet;
+import java.util.Date;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.index.IndexReader;
@@ -25,8 +28,10 @@ import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.TopDocsCollector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.queryParser.ParseException;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -46,6 +51,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 public class SearcherDaemon implements Runnable {
+	private static final Logger logger = Logger.getLogger(SearcherDaemon.class.getName());
 	private static final Map<String, Pattern> collapsePatterns;
 	static {
 		collapsePatterns = new TreeMap<String, Pattern>();
@@ -55,11 +61,17 @@ public class SearcherDaemon implements Runnable {
 	private final InetSocketAddress address;
 	private final IndexSearcher searcher;
 	private final QueryParser parser;
+	private final long startTimeMillis;
 
-	public SearcherDaemon(InetSocketAddress address, final IndexSearcher searcher, final QueryParser parser) {
+	public SearcherDaemon(InetSocketAddress address, String dir, final QueryParser parser) throws IOException {
+		this(address, new IndexSearcher(FSDirectory.open(new File(dir))), parser);
+	}
+
+	public SearcherDaemon(InetSocketAddress address, IndexSearcher searcher, final QueryParser parser) throws IOException {
 		this.address = address;
 		this.searcher = searcher;
 		this.parser = parser;
+		this.startTimeMillis = System.currentTimeMillis();
 	}
 	
 	public void run() {
@@ -87,6 +99,7 @@ public class SearcherDaemon implements Runnable {
       });
     
     bootstrap.bind(address);
+		logger.info("SearcherDaemon is launched in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - this.startTimeMillis));
 	}
 
 	private static class MyCollector extends Collector {
@@ -94,10 +107,12 @@ public class SearcherDaemon implements Runnable {
 		private final String query;
 		private final BitSet hits;
 		private int docBase;
-		public MyCollector(IndexSearcher searcher, String query) {
-			this.query = "";
+		private int maxRevs;
+		public MyCollector(IndexSearcher searcher, String query, int max) {
+			this.query = query;
 			this.searcher = searcher;
 			this.hits = new BitSet(searcher.getIndexReader().maxDoc());
+			this.maxRevs = max;
 		}
 		public boolean acceptsDocsOutOfOrder() {
 			return true;
@@ -108,15 +123,29 @@ public class SearcherDaemon implements Runnable {
 		public void setScorer(Scorer scorer) {
 		}
 		public void collect(int doc) {
+			doc += this.docBase;
 			// TODO: it must work for other fileds than 'added' and 'removed'
+			if ( this.hits.cardinality() >= this.maxRevs ) {
+				this.hits.clear(doc);
+				return;
+			}					
 			try {
-				if ( ( StringEscapeUtils.unescapeJava(searcher.doc(doc).getField("added").stringValue()).indexOf(this.query) < 0
-							 && StringEscapeUtils.unescapeJava(searcher.doc(doc).getField("removed").stringValue()).indexOf(this.query) < 0  ) ) {
-					this.hits.clear(doc + this.docBase);
+				if ( ( searcher.doc(doc).getField("added").stringValue().indexOf(this.query) >= 0
+							 || searcher.doc(doc).getField("removed").stringValue().indexOf(this.query) >= 0  ) ) {
+					this.hits.set(doc);
 				} else {
-					this.hits.set(doc + this.docBase);
+					this.hits.clear(doc);
 				}
 			} catch (IOException e) {
+				logger.severe("failed to read " + doc);
+			} catch ( IllegalArgumentException e ) {
+				String str = "";
+				try {
+					str = searcher.doc(doc).getFields().toString();
+					System.err.println(str);//!
+				} catch (IOException ex) {
+				}
+				throw new RuntimeException(str, e);
 			}
 		}
 		public BitSet getHits() {
@@ -179,26 +208,26 @@ public class SearcherDaemon implements Runnable {
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-      // very tentative format of query: max-results<tab>query
-      String q = ((ChannelBuffer)e.getMessage()).toString(Charset.defaultCharset());
+			long processingStartMillis = System.currentTimeMillis();
 			try {
-				JSONObject json = new JSONObject(q);
-				System.err.println("received query: " + json.toString(2));//!
-				String query   = json.getString("q");						 // to be fed to QueryParser
-				String hitsper = json.optString("collapse_hits", "no"); // no or day or month
-				int maxrevs    = json.optInt("max_revs", 100);
-				double version = json.optDouble("version", 0.1);		// 
-				JSONArray fields_ = json.optJSONArray("fields"); // the fields to be given in the output. if empty, only number of hits will be emitted
-				MyCollector collector = new MyCollector(this.searcher, query);
+				JSONObject qobj = new JSONObject(((ChannelBuffer)e.getMessage()).toString(Charset.defaultCharset()));
+				logger.info("received query: " + qobj.toString(2) + " at " + ctx);
+				String query   = qobj.getString("q");						 // to be fed to QueryParser
+				String hitsper = qobj.optString("collapse_hits", "no"); // no or day or month
+				int maxrevs    = qobj.optInt("max_revs", 1000);
+				double version = qobj.optDouble("version", 0.1);		// 
+				JSONArray fields_ = qobj.optJSONArray("fields"); // the fields to be given in the output. if empty, only number of hits will be emitted
+				MyCollector collector = new MyCollector(this.searcher, query, maxrevs);
 				this.searcher.search(this.parser.parse(query), collector);
 				BitSet hits = collector.getHits();
+				logger.info("finished searching: " + hits);
 				JSONObject ret = new JSONObject();
 
 				ret.put("hits_all", hits.cardinality());
 
 				List<String> fields = new ArrayList<String>();
 				if ( fields_ == null ) {
-					String f = json.optString("fields");
+					String f = qobj.optString("fields");
 					if ( f == null  ||  "".equals(f) ) {
 						fields = Collections.emptyList();
 					} else {
@@ -213,6 +242,8 @@ public class SearcherDaemon implements Runnable {
 				if ( "no".equals(hitsper) || (cpattern = collapsePatterns.get(hitsper)) == null ) {
 					if ( fields.size() > 0 ) {
 						ret.put("hits", writeHits(hits, fields));
+					} else {
+						ret.put("hits", hits.cardinality());
 					}
 				} else {
 					JSONArray hitEntries = writeCollapsedHitsByTimestamp(hits, fields, cpattern);
@@ -220,7 +251,6 @@ public class SearcherDaemon implements Runnable {
 						ret.put("hits", hitEntries);
 					} else {
 						JSONArray hits_ = new JSONArray();
-						System.err.println("hits " + hitEntries);
 						for ( int i = 0; i < hitEntries.length(); ++i ) {
 							hits_.put(new JSONArray(new Object[]{
 										hitEntries.getJSONArray(i).getString(0),
@@ -230,8 +260,18 @@ public class SearcherDaemon implements Runnable {
 						ret.put("hits", hits_);
 					}
 				}
-				e.getChannel().write(ret.toString());
-      } catch (Exception ex) {
+				logger.info("hits: " + ret.optJSONArray("hits"));//!
+				ret.put("elapsed", System.currentTimeMillis() - processingStartMillis);
+				String str = ret.toString();
+				e.getChannel().write(str);
+				logger.info("responded in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - processingStartMillis) + " (" + str.length() + " characters)");
+      } catch (IOException ex) {
+        e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
+				ex.printStackTrace();
+      } catch (JSONException ex) {
+        e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
+				ex.printStackTrace();
+      } catch (ParseException ex) {
         e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
 				ex.printStackTrace();
       }
@@ -246,9 +286,21 @@ public class SearcherDaemon implements Runnable {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-		new SearcherDaemon(new InetSocketAddress(8080),
-											 new IndexSearcher(FSDirectory.open(new File("index"))),
+  public static void main(String[] args) throws IOException {
+		if ( args.length < 1 ) {
+			System.err.println("usage: java " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER>");
+		}
+		int port = 8080;
+		String dir = args[0];
+		if ( args.length >= 2 ) {
+			try {
+				port = Integer.parseInt(args[1]);
+			} catch ( NumberFormatException e ) {
+				// do nothing
+			}
+		}
+		new SearcherDaemon(new InetSocketAddress(port),
+											 dir,
 											 new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(3))).run();
   }
 }
