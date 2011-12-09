@@ -123,6 +123,9 @@ public class Indexer {
 			if ( (s = System.getProperty("nThreads")) != null ) {
 				nThreads = Integer.parseInt(s);
 			}
+			if ( (s = System.getProperty("ramBufferSize")) != null ) {
+				ramBufferSizeMB = Integer.parseInt(s);
+			}
 		}
 
 		// setup the writer configuration
