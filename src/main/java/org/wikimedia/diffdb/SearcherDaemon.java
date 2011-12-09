@@ -64,7 +64,7 @@ public class SearcherDaemon implements Runnable {
 	private final long startTimeMillis;
 
 	public SearcherDaemon(InetSocketAddress address, String dir, final QueryParser parser) throws IOException {
-		this(address, new IndexSearcher(FSDirectory.open(new File(dir))), parser);
+		this(address, new IndexSearcher(FSDirectory.open(new File(dir)), true), parser);
 	}
 
 	public SearcherDaemon(InetSocketAddress address, IndexSearcher searcher, final QueryParser parser) throws IOException {
