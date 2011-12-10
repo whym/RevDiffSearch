@@ -103,7 +103,7 @@ public class Indexer {
 		int nThreads = 15;
 		long reportInterval = 10000L;
 		if (args.length != 2) {
-			System.err.println("Usage: java " + Indexer.class.getName()
+			System.err.println("Usage: java -Dngram=N " + Indexer.class.getName()
 												 + " <index dir> <data dir>");
 			System.exit(1);
 		}
@@ -112,6 +112,7 @@ public class Indexer {
 		String dataDir = args[1];
 		double ramBufferSizeMB = 1024;
 		int poolsize = nThreads * 10000;
+		int ngram = 3;
 		{
 			String s;
 			if ( (s = System.getProperty("poolSize")) != null ) {
@@ -126,6 +127,9 @@ public class Indexer {
 			if ( (s = System.getProperty("ramBufferSize")) != null ) {
 				ramBufferSizeMB = Integer.parseInt(s);
 			}
+			if ( (s = System.getProperty("ngram")) != null ) {
+				ngram = Integer.parseInt(s);
+			}
 		}
 
 		// setup the writer configuration
@@ -136,7 +140,7 @@ public class Indexer {
 		// http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
 
 		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34,
-																									new SimpleNGramAnalyzer(3));
+																									new SimpleNGramAnalyzer(ngram));
 		cfg.setOpenMode(OpenMode.CREATE_OR_APPEND); // http://lucene.apache.org/java/3_2_0/api/core/org/apache/lucene/index/IndexWriterConfig.OpenMode.html#CREATE_OR_APPEND
 		cfg.setRAMBufferSizeMB(ramBufferSizeMB);
 		cfg.setMergePolicy(lmp);

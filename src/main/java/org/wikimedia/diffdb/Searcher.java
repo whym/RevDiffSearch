@@ -81,6 +81,7 @@ public class Searcher {
 		String queryString = null;
 		int hitsPerPage = 10;
     boolean exact = false;
+    int ngram = 3;
 
 		for (int i = 0; i < args.length; i++) {
 			if ("-index".equals(args[i])) {
@@ -102,6 +103,9 @@ public class Searcher {
 				raw = true;
 			} else if ("-exact".equals(args[i])) {
 				exact = true;
+			} else if ("-ngram".equals(args[i])) {
+				ngram = Integer.parseInt(args[i + 1]);
+        i++;
 			} else if ("-paging".equals(args[i])) {
 				hitsPerPage = Integer.parseInt(args[i + 1]);
 				if (hitsPerPage <= 0) {
@@ -117,7 +121,7 @@ public class Searcher {
 				index)));
 		System.err.println("Index contains " + searcher.maxDoc()
 				+ " documents.");
-		Analyzer analyzer = new SimpleNGramAnalyzer(3);
+		Analyzer analyzer = new SimpleNGramAnalyzer(ngram);
 
 		BufferedReader in = null;
 		if (queries != null) {

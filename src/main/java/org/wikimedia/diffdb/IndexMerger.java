@@ -50,12 +50,20 @@ public class IndexMerger {
 			System.exit(1);
 		}
 
+    int ramBufferSizeMB = 1024;
+    int ngram = 3;
 		File INDEX_DIR = new File(args[0]);
     boolean optimize = true;
     {
       String s;
       if ( (s = System.getProperty("optimize")) != null ) {
         optimize = "true".equals(s);
+      }
+      if ( (s = System.getProperty("ngram")) != null ) {
+        ngram = Integer.parseInt(s);
+      }
+      if ( (s = System.getProperty("ramBufferSize")) != null ) {
+        ramBufferSizeMB = Integer.parseInt(s);
       }
     }
 
@@ -65,10 +73,10 @@ public class IndexMerger {
 
 		try {
 			IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34,
-                                                    new SimpleNGramAnalyzer(3));
+                                                    new SimpleNGramAnalyzer(ngram));
 			LogDocMergePolicy lmp = new LogDocMergePolicy();
 			lmp.setMergeFactor(1000);
-			cfg.setRAMBufferSizeMB(50);
+			cfg.setRAMBufferSizeMB(ramBufferSizeMB);
 			cfg.setMergePolicy(lmp);
 
 			IndexWriter writer = new IndexWriter(FSDirectory.open(INDEX_DIR), cfg);

@@ -283,8 +283,15 @@ public class SearcherDaemon implements Runnable {
   }
 
   public static void main(String[] args) throws IOException {
+		int ngram = 3;
 		if ( args.length < 1 ) {
-			System.err.println("usage: java " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER>");
+			System.err.println("usage: java -Dngram=N " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER>");
+		}
+		{
+			String s;
+			if ( (s = System.getProperty("ngram")) != null ) {
+				ngram = Integer.parseInt(s);
+			}
 		}
 		int port = 8080;
 		String dir = args[0];
@@ -297,7 +304,7 @@ public class SearcherDaemon implements Runnable {
 		}
 		new SearcherDaemon(new InetSocketAddress(port),
 											 dir,
-											 new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(3))).run();
+											 new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(ngram))).run();
   }
 }
 
