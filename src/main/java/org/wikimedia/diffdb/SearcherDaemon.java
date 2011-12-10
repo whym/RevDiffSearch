@@ -89,11 +89,6 @@ public class SearcherDaemon implements Runnable {
 					pipeline.addLast("decoder", new StringEncoder());
 					pipeline.addLast("encoder", new StringDecoder());
 
-					// pipeline.addLast("decoder", new HttpRequestDecoder());
-					// pipeline.addLast("encoder", new HttpResponseEncoder());
-					// pipeline.addLast("deflater", new HttpContentCompressor());
-					// pipeline.addLast("handler", new HttpRequestHandler());
-
           return pipeline;
         }
       });
@@ -261,6 +256,7 @@ public class SearcherDaemon implements Runnable {
 					}
 				}
 				logger.info("hits: " + ret.optJSONArray("hits"));//!
+				ret.put("q", query);
 				ret.put("elapsed", System.currentTimeMillis() - processingStartMillis);
 				String str = ret.toString();
 				e.getChannel().write(str);
