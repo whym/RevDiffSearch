@@ -1,50 +1,27 @@
 package org.wikimedia.diffdb;
 
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.*;
 import org.apache.lucene.analysis.Analyzer;
 import java.io.*;
 
-public final class SimpleNGramAnalyzer extends Analyzer {
-
-	private static class NGramTokenStream extends TokenStream {
-		private final int n;
-		private final Reader reader;
-		private CharSequence buff;
-		private int endpos;
-		private CharTermAttribute termAttr;
-
-		public NGramTokenStream(int n, Reader reader) {
-			this.n = n;
-			this.reader = reader;
-			this.buff = readAll(reader);
-			this.endpos = n;
-			this.termAttr = (CharTermAttribute) addAttribute(CharTermAttribute.class);
-		}
-
-		public boolean incrementToken() {
-			if (this.endpos > buff.length()) {
-				return false;
-			}
-			termAttr.setEmpty();
-			termAttr.append(this.buff, this.endpos - this.n, this.endpos);
-			++this.endpos;
-			return true;
-		}
-
-		private static CharSequence readAll(Reader reader) {
-			try {
-				StringBuffer buff = new StringBuffer();
-				char[] buffb = new char[4096];
-				int len;
-				while ((len = reader.read(buffb)) > 0) {
-					buff.append(buffb, 0, len);
-				}
-				return buff.toString();
-			} catch (IOException e) {
-				throw new RuntimeException(e.toString());
-			}
-		}
+public class SimpleNGramAnalyzer extends Analyzer {
+	public static class N1 extends SimpleNGramAnalyzer {
+		public N1() { super(1); }
+	}
+	public static class N2 extends SimpleNGramAnalyzer {
+		public N2() { super(2); }
+	}
+	public static class N3 extends SimpleNGramAnalyzer {
+		public N3() { super(3); }
+	}
+	public static class N4 extends SimpleNGramAnalyzer {
+		public N4() { super(4); }
+	}
+	public static class N5 extends SimpleNGramAnalyzer {
+		public N5() { super(5); }
+	}
+	public static class N6 extends SimpleNGramAnalyzer {
+		public N6() { super(6); }
 	}
 
 	private final int n;
@@ -53,8 +30,11 @@ public final class SimpleNGramAnalyzer extends Analyzer {
 		this.n = n;
 	}
 
-	public TokenStream tokenStream(String field, final Reader reader) {
-		return new NGramTokenStream(this.n, reader);
+	public final TokenStream tokenStream(String field, final Reader reader) {
+		return new SimpleNGramTokenizer(reader, this.n);
+	}
+	public final TokenStream reusableTokenStream(String field, final Reader reader) {
+		return tokenStream(field, reader);
 	}
 }
 
