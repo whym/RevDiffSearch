@@ -34,7 +34,7 @@ and then the interactive searcher with the following command: ::
 Requirements
 =====================
 * Apache Maven
-* Apache Lucene 3.4.0 (lucene-analyzers-3.4-\*.jar and lucene-core-3.4-\*.jar)
+* Apache Lucene 3.5.0
 * Apache Commons Lang 3.0.1
 * opencsv
 * junit

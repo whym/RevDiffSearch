@@ -311,7 +311,7 @@ public class SearcherDaemon implements Runnable {
 		}
 		new SearcherDaemon(new InetSocketAddress(port),
 											 dir,
-											 new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(ngram))).run();
+											 new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(ngram))).run();
   }
 }
 

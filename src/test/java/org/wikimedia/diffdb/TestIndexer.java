@@ -52,16 +52,16 @@ public class TestIndexer {
   @Test public void smallDocuments() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_34,
+                                         new IndexWriterConfig(Version.LUCENE_35,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 1, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
-    assertEquals(2, writer.numDocs());
 
     IndexReader reader = IndexReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
+    assertEquals(2, reader.numDocs());
     assertEquals("Accessiblecomputing", reader.document(findDocument(searcher, new Term("rev_id", "233192"))).get("title"));
     assertEquals("0", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("namespace"));
     assertEquals("0", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("namespace"));

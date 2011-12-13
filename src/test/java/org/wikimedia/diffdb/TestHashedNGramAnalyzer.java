@@ -28,7 +28,7 @@ public class TestHashedNGramAnalyzer {
   }
 
   @Test public void parseQuery() throws IOException, ParseException {
-    QueryParser parser = new QueryParser(Version.LUCENE_34, "added", new HashedNGramAnalyzer(3, 3, 11));
+    QueryParser parser = new QueryParser(Version.LUCENE_35, "added", new HashedNGramAnalyzer(3, 3, 11));
     assertEquals("test", parser.parse("help"));
   }
 }

@@ -139,7 +139,7 @@ public class Indexer {
 		// see
 		// http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
 
-		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_34,
+		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_35,
 																									new SimpleNGramAnalyzer(ngram));
 		cfg.setOpenMode(OpenMode.CREATE_OR_APPEND); // http://lucene.apache.org/java/3_2_0/api/core/org/apache/lucene/index/IndexWriterConfig.OpenMode.html#CREATE_OR_APPEND
 		cfg.setRAMBufferSizeMB(ramBufferSizeMB);

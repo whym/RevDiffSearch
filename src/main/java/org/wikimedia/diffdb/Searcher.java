@@ -130,7 +130,7 @@ public class Searcher {
 		} else {
 			in = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
 		}
-		QueryParser parser = new QueryParser(Version.LUCENE_34, field, analyzer);
+		QueryParser parser = new QueryParser(Version.LUCENE_35, field, analyzer);
 		
 		while (true) {
 			if (queries == null && queryString == null) { // prompt the user

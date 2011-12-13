@@ -53,7 +53,7 @@ public class TestSearcherDaemon {
   @Test public void smallDocuments() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_34,
+                                         new IndexWriterConfig(Version.LUCENE_35,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 1, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -61,7 +61,7 @@ public class TestSearcherDaemon {
     indexer.finish();
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
-    new Thread(new SearcherDaemon(new InetSocketAddress(8080), searcher, new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(new InetSocketAddress(8080), searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
 
     Thread.sleep(1000L);
 
@@ -92,7 +92,7 @@ public class TestSearcherDaemon {
   @Test public void smallDocumentsWithCollapsedHits() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_34,
+                                         new IndexWriterConfig(Version.LUCENE_35,
                                                                new SimpleNGramAnalyzer(1)));
     Indexer indexer = new Indexer(writer, 1, 10, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -101,7 +101,7 @@ public class TestSearcherDaemon {
     indexer.finish();
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
-    new Thread(new SearcherDaemon(new InetSocketAddress(8081), searcher, new QueryParser(Version.LUCENE_34, "added", new SimpleNGramAnalyzer(1)))).start();
+    new Thread(new SearcherDaemon(new InetSocketAddress(8081), searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(1)))).start();
 
     Thread.sleep(1000L);
 
@@ -150,7 +150,7 @@ public class TestSearcherDaemon {
   @Test public void smallDocumentsHash() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_34,
+                                         new IndexWriterConfig(Version.LUCENE_35,
                                                                new HashedNGramAnalyzer(3, 3, 11)));
     Indexer indexer = new Indexer(writer, 1, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -158,7 +158,7 @@ public class TestSearcherDaemon {
     indexer.finish();
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
-    new Thread(new SearcherDaemon(new InetSocketAddress(8082), searcher, new QueryParser(Version.LUCENE_34, "added", new HashedNGramAnalyzer(3, 3, 11)))).start();
+    new Thread(new SearcherDaemon(new InetSocketAddress(8082), searcher, new QueryParser(Version.LUCENE_35, "added", new HashedNGramAnalyzer(3, 3, 11)))).start();
 
     Thread.sleep(1000L);
 
