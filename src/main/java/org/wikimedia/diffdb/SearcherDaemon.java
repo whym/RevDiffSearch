@@ -103,11 +103,14 @@ public class SearcherDaemon implements Runnable {
 		private final BitSet hits;
 		private int docBase;
 		private int maxRevs;
+		private int positives;
+
 		public MyCollector(IndexSearcher searcher, String query, int max) {
 			this.query = query;
 			this.searcher = searcher;
 			this.hits = new BitSet(searcher.getIndexReader().maxDoc());
 			this.maxRevs = max;
+			this.positives = 0;
 		}
 		public boolean acceptsDocsOutOfOrder() {
 			return true;
@@ -117,8 +120,12 @@ public class SearcherDaemon implements Runnable {
 		}
 		public void setScorer(Scorer scorer) {
 		}
+		public int positives() {
+			return this.positives;
+		}
 		public void collect(int doc) {
 			doc += this.docBase;
+			++this.positives;
 			// TODO: it must work for other fileds than 'added' and 'removed'
 			if ( this.hits.cardinality() >= this.maxRevs ) {
 				this.hits.clear(doc);
@@ -255,8 +262,8 @@ public class SearcherDaemon implements Runnable {
 						ret.put("hits", hits_);
 					}
 				}
-				logger.info("hits: " + ret.optJSONArray("hits"));//!
 				ret.put("q", query);
+				ret.put("debug_positives", collector.positives());
 				ret.put("elapsed", System.currentTimeMillis() - processingStartMillis);
 				String str = ret.toString();
 				e.getChannel().write(str);
