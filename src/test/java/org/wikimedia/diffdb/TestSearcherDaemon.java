@@ -146,6 +146,45 @@ public class TestSearcherDaemon {
       assertEquals(1,            json.getJSONArray("hits").getJSONArray(1).getInt(1));
     }
   }
+
+  @Test public void smallDocumentsHash() throws IOException, JSONException, InterruptedException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_34,
+                                                               new HashedNGramAnalyzer(3, 3, 11)));
+    Indexer indexer = new Indexer(writer, 1, 2, 100);
+    indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
+                                       "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
+    indexer.finish();
+
+    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    new Thread(new SearcherDaemon(new InetSocketAddress(8082), searcher, new QueryParser(Version.LUCENE_34, "added", new HashedNGramAnalyzer(3, 3, 11)))).start();
+
+    Thread.sleep(1000L);
+
+    // query "/Todo" and receive rev_ids
+    {
+      JSONObject q = new JSONObject();
+      q.put("q", "/Todo");
+      q.put("fields", "rev_id");
+      JSONObject json = retrieve(new InetSocketAddress(8082), q);
+      System.err.println(json);//!
+      assertEquals(1, json.getInt("hits_all"));
+      assertEquals(18201, json.getJSONArray("hits").getJSONArray(0).getInt(0));
+    }
+    // query "Accessible" and receive rev_ids and timestamps
+    {
+      JSONObject q = new JSONObject();
+      q.put("q", "Accessible");
+      q.put("fields", new JSONArray(new String[]{"rev_id", "timestamp"}));
+      JSONObject json = retrieve(new InetSocketAddress(8082), q);
+      assertEquals(1, json.getInt("hits_all"));
+      assertEquals(233192,
+                   json.getJSONArray("hits").getJSONArray(0).getInt(0));
+      assertEquals("2001-01-21T11:12:21Z",
+                   json.getJSONArray("hits").getJSONArray(0).getString(1));
+    }
+  }
 }
 
 /*
