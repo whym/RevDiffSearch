@@ -21,6 +21,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.util.AttributeSource;
 import ie.ucd.murmur.MurmurHash;
+import org.apache.commons.codec.binary.Base64;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -42,6 +43,7 @@ public final class HashedNGramTokenizer extends Tokenizer {
   private boolean started = false;
   
   private final NGramHashAttribute hashAtt;
+  private final CharTermAttribute termAtt;
   private final OffsetAttribute offsetAtt;
 
   /**
@@ -54,8 +56,9 @@ public final class HashedNGramTokenizer extends Tokenizer {
     super(input);
     this.addAttributeImpl(new NGramHashAttributeImpl());
     this.hashAtt   = addAttribute(NGramHashAttribute.class);
+    this.termAtt   = addAttribute(CharTermAttribute.class);
     this.offsetAtt = addAttribute(OffsetAttribute.class);
-    init(minGram, maxGram, seed);
+    this.init(minGram, maxGram, seed);
   }
 
   /**
@@ -69,8 +72,9 @@ public final class HashedNGramTokenizer extends Tokenizer {
     super(source, input);
     this.addAttributeImpl(new NGramHashAttributeImpl());
     this.hashAtt   = addAttribute(NGramHashAttribute.class);
+    this.termAtt   = addAttribute(CharTermAttribute.class);
     this.offsetAtt = addAttribute(OffsetAttribute.class);
-    init(minGram, maxGram, seed);
+    this.init(minGram, maxGram, seed);
   }
 
   /**
@@ -84,8 +88,9 @@ public final class HashedNGramTokenizer extends Tokenizer {
     super(factory, input);
     this.addAttributeImpl(new NGramHashAttributeImpl());
     this.hashAtt   = addAttribute(NGramHashAttribute.class);
+    this.termAtt   = addAttribute(CharTermAttribute.class);
     this.offsetAtt = addAttribute(OffsetAttribute.class);
-    init(minGram, maxGram, seed);
+    this.init(minGram, maxGram, seed);
   }
 
   /**
@@ -111,50 +116,66 @@ public final class HashedNGramTokenizer extends Tokenizer {
   /** Returns the next token in the stream, or null at EOS. */
   @Override
   public final boolean incrementToken() throws IOException {
-    clearAttributes();
-    if (!started) {
-      started = true;
-      gramSize = minGram;
+    this.clearAttributes();
+    if (!this.started) {
+      this.started = true;
+      this.gramSize = this.minGram;
       char[] chars = new char[1024];
-      input.read(chars);
-      inStr = new String(chars).trim();  // remove any trailing empty strings 
-      inLen = inStr.length();
+      this.input.read(chars);
+      this.inStr = new String(chars).trim();  // remove any trailing empty strings 
+      this.inLen = this.inStr.length();
     }
 
-    if (pos+gramSize > inLen) {            // if we hit the end of the string
-      pos = 0;                           // reset to beginning of string
-      gramSize++;                        // increase n-gram size
-      if (gramSize > maxGram)            // we are done
+    if (this.pos+this.gramSize > this.inLen) {            // if we hit the end of the string
+      this.pos = 0;                           // reset to beginning of string
+      this.gramSize++;                        // increase n-gram size
+      if (this.gramSize > this.maxGram)            // we are done
         return false;
-      if (pos+gramSize > inLen)
+      if (this.pos+this.gramSize > this.inLen)
         return false;
     }
 
     int oldPos = pos;
     pos++;
-    byte[] bytes = inStr.substring(oldPos, oldPos+gramSize).getBytes();
-    hashAtt.setValue(MurmurHash.hash32(bytes, bytes.length, this.seed));
-    offsetAtt.setOffset(correctOffset(oldPos), correctOffset(oldPos+gramSize));
+    int hash = this.hashString(this.inStr.substring(oldPos, oldPos+this.gramSize));
+    //this.hashAtt.setValue(hash);  // TODO: NGramHashAttribute didn't work as index token in search; disabled until we find a better way to embed the hash value
+    char[] str = this.encodeIntegerAsString(hash).toCharArray();
+    this.termAtt.copyBuffer(str, 0, str.length); // for now we embed integers as Base64 encoded strings
+    this.offsetAtt.setOffset(this.correctOffset(oldPos), this.correctOffset(oldPos+gramSize));
     return true;
+  }
+
+  public int hashString(String str) {
+    byte[] bytes = str.getBytes();
+    return MurmurHash.hash32(bytes, bytes.length, this.seed);
+  }
+
+  public static String encodeIntegerAsString(int x) {
+    byte[] bytes = new byte[4];
+    bytes[0] = (byte)(x & 0xFF);
+    bytes[1] = (byte)((x >>> 8) & 0xFF);
+    bytes[2] = (byte)((x >>> 16) & 0xFF);
+    bytes[3] = (byte)((x >>> 24) & 0xFF);
+    return Base64.encodeBase64String(bytes).substring(0, 6); // an integer will be 8 characters like ABCDEF==
   }
   
   @Override
   public final void end() {
     // set final offset
-    final int finalOffset = inLen;
+    final int finalOffset = this.inLen;
     this.offsetAtt.setOffset(finalOffset, finalOffset);
   }    
   
   @Override
   public void reset(Reader input) throws IOException {
     super.reset(input);
-    reset();
+    this.reset();
   }
 
   @Override
   public void reset() throws IOException {
     super.reset();
-    started = false;
-    pos = 0;
+    this.started = false;
+    this.pos = 0;
   }
 }
