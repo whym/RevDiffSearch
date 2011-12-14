@@ -71,6 +71,7 @@ public class SearcherDaemon implements Runnable {
 		this.address = address;
 		this.searcher = searcher;
 		this.parser = parser;
+		this.parser.setDefaultOperator(QueryParser.AND_OPERATOR);
 		this.startTimeMillis = System.currentTimeMillis();
 	}
 	
