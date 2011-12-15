@@ -46,18 +46,38 @@ public class DiffDocumentProducer implements Runnable {
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
 	};
 
+	public static enum Filter {
+		PASS_ALL {
+			@Override
+				public boolean pass(Document doc) {
+				return true;
+			}
+		}, PASS_TALK_NAMESPACE_ONLY {
+			@Override
+				public boolean pass(Document doc) {
+				return Integer.parseInt(doc.getField("namespace").stringValue()) % 2 == 1;
+			}
+		};
+		public abstract boolean pass(Document doc);
+	};
+
   private final BlockingQueue<Document> prodq;
   private final BlockingQueue<Document> poolq;
   private final BufferedReader reader;
 	private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
   private final List<Runnable> producers;
+	private final Filter filter;
 
-  public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq, List<Runnable> producers) {
+  public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq, List<Runnable> producers, Filter filter) {
     this.prodq = prodq;
     this.poolq = poolq;
     this.reader = new BufferedReader(reader);
     this.producers = producers;
+		this.filter = filter;
   }
+  public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq, List<Runnable> producers) {
+		this(reader, prodq, poolq, producers, Filter.PASS_ALL);
+	}
 
   public static  Document createEmptyDocument() {
     final Document doc = new Document();
@@ -128,7 +148,9 @@ public class DiffDocumentProducer implements Runnable {
         }
 
         ++linenumber;
-        prodq.put(doc);
+				if ( filter.pass(doc) ) {
+					prodq.put(doc);
+				}
       }
 		} catch ( InterruptedException e ) {
 			System.out.println(e);

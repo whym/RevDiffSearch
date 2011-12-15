@@ -32,8 +32,9 @@ public class Indexer {
 	private final BlockingQueue<Document> poolq;
 	private final List<Runnable> producers;
 	private final long start;
+	private final DiffDocumentProducer.Filter filter;
 	
-	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration) {
+	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration, DiffDocumentProducer.Filter filter) {
 		this.start = System.currentTimeMillis();
 		this.writer = writer;
 		this.reportInterval = duration;
@@ -41,6 +42,7 @@ public class Indexer {
 		this.prodq = new ArrayBlockingQueue<Document>(poolsize);
 		this.poolq = new ArrayBlockingQueue<Document>(poolsize);
 		this.producers = Collections.synchronizedList(new ArrayList<Runnable>());
+		this.filter = filter;
 		// run a thread that reports the progress periodically
 		new Thread(new Runnable() {
 				public void run() {
@@ -64,6 +66,9 @@ public class Indexer {
 		while ( this.poolq.remainingCapacity() > 0 ) {
 			this.poolq.add(DiffDocumentProducer.createEmptyDocument());
 		}
+	}
+	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration) {
+		this(writer, nthreads, poolsize, duration, DiffDocumentProducer.Filter.PASS_ALL);
 	}
 
 
@@ -92,7 +97,7 @@ public class Indexer {
 					indexDocuments(f);
 				}
 			} else {
-				executor.execute(new DiffDocumentProducer(new FileReader(file), this.prodq, this.poolq, this.producers));
+				executor.execute(new DiffDocumentProducer(new FileReader(file), this.prodq, this.poolq, this.producers, this.filter));
 				executor.execute(new DiffDocumentConsumer(this.writer, this.prodq, this.poolq, this.producers));
 			}
 		}
@@ -113,6 +118,7 @@ public class Indexer {
 		double ramBufferSizeMB = 1024;
 		int poolsize = nThreads * 10000;
 		int ngram = 3;
+		DiffDocumentProducer.Filter filter = DiffDocumentProducer.Filter.PASS_ALL;
 		{
 			String s;
 			if ( (s = System.getProperty("poolSize")) != null ) {
@@ -129,6 +135,9 @@ public class Indexer {
 			}
 			if ( (s = System.getProperty("ngram")) != null ) {
 				ngram = Integer.parseInt(s);
+			}
+			if ( (s = System.getProperty("filter")) != null ) {
+				filter = DiffDocumentProducer.Filter.valueOf(s);
 			}
 		}
 
@@ -147,7 +156,7 @@ public class Indexer {
 
 		Indexer indexer = null;
 		try {
-			indexer = new Indexer(new IndexWriter(dir, cfg), nThreads, poolsize, reportInterval);
+			indexer = new Indexer(new IndexWriter(dir, cfg), nThreads, poolsize, reportInterval, filter);
 			indexer.indexDocuments(new File(dataDir));
 		} finally {
 			if ( indexer != null ) {
