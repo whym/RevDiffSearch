@@ -7,8 +7,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,30 +27,47 @@ public class Indexer {
 
 	private final long reportInterval;
 	private final IndexWriter writer;
-	private final ExecutorService executor;
+	private final ExecutorService producerExecutor;
+	private final ExecutorService consumerExecutor;
 	private final BlockingQueue<Document> prodq;
 	private final BlockingQueue<Document> poolq;
-	private final List<Runnable> producers;
 	private final long start;
+	private final DiffDocumentProducer.Filter filter;
+	private final double consumerRatio;
+	private boolean finished;
 	
-	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration) {
+	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration, DiffDocumentProducer.Filter filter) {
+		if ( nthreads <= 1 ) {
+			throw new IllegalArgumentException("number of threads must be at least 2");
+		}
+		this.consumerRatio = 0.5;
 		this.start = System.currentTimeMillis();
 		this.writer = writer;
 		this.reportInterval = duration;
-		this.executor = Executors.newFixedThreadPool(nthreads);
+		this.finished = false;
+		int nconsumers = Math.max((int)(nthreads * consumerRatio), 1);
+		this.consumerExecutor = Executors.newFixedThreadPool(nconsumers);
+		this.producerExecutor = Executors.newFixedThreadPool(nthreads - nconsumers);
 		this.prodq = new ArrayBlockingQueue<Document>(poolsize);
 		this.poolq = new ArrayBlockingQueue<Document>(poolsize);
-		this.producers = Collections.synchronizedList(new ArrayList<Runnable>());
+		this.filter = filter;
 		// run a thread that reports the progress periodically
+		final Object this_ = this;
 		new Thread(new Runnable() {
 				public void run() {
 					try {
-						while (!executor.isTerminated()) {
-							System.err.println("" + writer.numDocs()
-																 + " documents have been indexed in "
-																 + (System.currentTimeMillis() - start)
-																 + " msecs (products " + prodq.size() + ", producers " + producers.size() +  ")");
-							Thread.sleep(reportInterval);
+						while ( true ) {
+							synchronized (this_) {
+								if ( !isClosed() ) {
+									System.err.println("" + writer.numDocs()
+																		 + " documents have been indexed in "
+																		 + (System.currentTimeMillis() - start)
+																		 + " msecs (products " + prodq.size() + ")");
+									Thread.sleep(reportInterval);
+								} else {
+									break;
+								}
+							}
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -64,24 +81,40 @@ public class Indexer {
 		while ( this.poolq.remainingCapacity() > 0 ) {
 			this.poolq.add(DiffDocumentProducer.createEmptyDocument());
 		}
+		for ( int i = 0; i < nconsumers; ++i ) {
+			this.consumerExecutor.execute(new DiffDocumentConsumer(this.writer, this.prodq, this.poolq));
+		}
+	}
+	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration) {
+		this(writer, nthreads, poolsize, duration, DiffDocumentProducer.Filter.PASS_ALL);
 	}
 
 
-	public void finish() throws InterruptedException, IOException {
+	public boolean isClosed() {
+		return this.finished;
+	}
+	public synchronized void finish() throws InterruptedException, IOException {
 		try {
 			// This will make the executor accept no new threads
 			// and finish all existing threads in the queue
-			this.executor.shutdown();
+			this.producerExecutor.shutdown();
 			
 			// Wait until all threads are finish
-			while (!this.executor.isTerminated()) {
-				Thread.sleep(1000L);
+			while (!this.producerExecutor.isTerminated()) {
+				Thread.sleep(100L);
 			}
+			// Make sure all products are consumed
+			while (this.prodq.size() > 0) {
+				Thread.sleep(100L);
+			}
+			// Destroy consumers
+			this.consumerExecutor.shutdownNow();
 			System.out.println("Finished all threads");
 			// this.writer.optimize();
 			System.out.println("Writing " + this.writer.numDocs() + " documents.");
 		} finally {
 			this.writer.close();
+			this.finished = true;
 		}
 	}
 	
@@ -92,8 +125,7 @@ public class Indexer {
 					indexDocuments(f);
 				}
 			} else {
-				executor.execute(new DiffDocumentProducer(new FileReader(file), this.prodq, this.poolq, this.producers));
-				executor.execute(new DiffDocumentConsumer(this.writer, this.prodq, this.poolq, this.producers));
+				producerExecutor.execute(new DiffDocumentProducer(new FileReader(file), this.prodq, this.poolq, this.filter));
 			}
 		}
 	}
@@ -113,6 +145,7 @@ public class Indexer {
 		double ramBufferSizeMB = 1024;
 		int poolsize = nThreads * 10000;
 		int ngram = 3;
+		DiffDocumentProducer.Filter filter = DiffDocumentProducer.Filter.PASS_ALL;
 		{
 			String s;
 			if ( (s = System.getProperty("poolSize")) != null ) {
@@ -129,6 +162,9 @@ public class Indexer {
 			}
 			if ( (s = System.getProperty("ngram")) != null ) {
 				ngram = Integer.parseInt(s);
+			}
+			if ( (s = System.getProperty("filter")) != null ) {
+				filter = DiffDocumentProducer.Filter.valueOf(s);
 			}
 		}
 
@@ -147,7 +183,7 @@ public class Indexer {
 
 		Indexer indexer = null;
 		try {
-			indexer = new Indexer(new IndexWriter(dir, cfg), nThreads, poolsize, reportInterval);
+			indexer = new Indexer(new IndexWriter(dir, cfg), nThreads, poolsize, reportInterval, filter);
 			indexer.indexDocuments(new File(dataDir));
 		} finally {
 			if ( indexer != null ) {

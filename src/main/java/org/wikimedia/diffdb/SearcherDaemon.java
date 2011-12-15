@@ -71,6 +71,7 @@ public class SearcherDaemon implements Runnable {
 		this.address = address;
 		this.searcher = searcher;
 		this.parser = parser;
+		this.parser.setDefaultOperator(QueryParser.AND_OPERATOR);
 		this.startTimeMillis = System.currentTimeMillis();
 	}
 	
@@ -104,6 +105,7 @@ public class SearcherDaemon implements Runnable {
 		private int docBase;
 		private int maxRevs;
 		private int positives;
+		private int skipped;
 
 		public MyCollector(IndexSearcher searcher, String query, int max) {
 			this.query = query;
@@ -111,6 +113,7 @@ public class SearcherDaemon implements Runnable {
 			this.hits = new BitSet(searcher.getIndexReader().maxDoc());
 			this.maxRevs = max;
 			this.positives = 0;
+			this.skipped = 0;
 		}
 		public boolean acceptsDocsOutOfOrder() {
 			return true;
@@ -123,11 +126,15 @@ public class SearcherDaemon implements Runnable {
 		public int positives() {
 			return this.positives;
 		}
+		public int skipped() {
+			return this.skipped;
+		}
 		public void collect(int doc) {
 			doc += this.docBase;
 			++this.positives;
 			// TODO: it must work for other fileds than 'added' and 'removed'
 			if ( this.hits.cardinality() >= this.maxRevs ) {
+				++this.skipped;
 				this.hits.clear(doc);
 				return;
 			}					
@@ -219,10 +226,10 @@ public class SearcherDaemon implements Runnable {
 				int maxrevs    = qobj.optInt("max_revs", 1000);
 				double version = qobj.optDouble("version", 0.1);		// 
 				JSONArray fields_ = qobj.optJSONArray("fields"); // the fields to be given in the output. if empty, only number of hits will be emitted
+
 				MyCollector collector = new MyCollector(this.searcher, query, maxrevs);
 				this.searcher.search(this.parser.parse(query), collector);
 				BitSet hits = collector.getHits();
-				logger.info("finished searching: " + hits);
 				JSONObject ret = new JSONObject();
 
 				ret.put("hits_all", hits.cardinality());
@@ -240,6 +247,10 @@ public class SearcherDaemon implements Runnable {
 						fields.add(fields_.getString(i));
 					}
 				}
+				ret.put("debug_positives", collector.positives());
+				ret.put("debug_unchecked", collector.skipped());
+				logger.info("response (without hits): " + ret);
+				
 				Pattern cpattern;
 				if ( "no".equals(hitsper) || (cpattern = collapsePatterns.get(hitsper)) == null ) {
 					if ( fields.size() > 0 ) {
@@ -262,8 +273,13 @@ public class SearcherDaemon implements Runnable {
 						ret.put("hits", hits_);
 					}
 				}
-				ret.put("q", query);
-				ret.put("debug_positives", collector.positives());
+				// include query to response
+				ret.put("query",
+								qobj.put("collapse_hits", hitsper).
+								put("max_revs", maxrevs).
+								put("version", version).
+								put("fields", new JSONArray(fields.toArray())));
+
 				ret.put("elapsed", System.currentTimeMillis() - processingStartMillis);
 				String str = ret.toString();
 				e.getChannel().write(str);

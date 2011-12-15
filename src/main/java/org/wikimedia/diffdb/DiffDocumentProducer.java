@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -46,18 +46,48 @@ public class DiffDocumentProducer implements Runnable {
 		new Prop("user_text", Field.Store.YES, Field.Index.ANALYZED),
 	};
 
+	public static enum Filter {
+		PASS_ALL {
+			@Override
+				public boolean pass(Document doc) {
+				return true;
+			}
+		}, PASS_TALK_NAMESPACE_ONLY {
+			@Override
+				public boolean pass(Document doc) {
+				return Integer.parseInt(doc.getField("namespace").stringValue()) % 2 == 1;
+			}
+		};
+		public abstract boolean pass(Document doc);
+	};
+
   private final BlockingQueue<Document> prodq;
   private final BlockingQueue<Document> poolq;
   private final BufferedReader reader;
 	private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-  private final List<Runnable> producers;
+	private final Filter filter;
 
-  public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq, List<Runnable> producers) {
+  public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq, Filter filter) {
     this.prodq = prodq;
     this.poolq = poolq;
     this.reader = new BufferedReader(reader);
-    this.producers = producers;
+		this.filter = filter;
   }
+  public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq) {
+		this(reader, prodq, poolq, Filter.PASS_ALL);
+	}
+
+	public int hashCode() {
+		return this.reader.hashCode();
+	}
+
+	public boolean equals(Object o) {
+		if ( o instanceof DiffDocumentProducer ) {
+			DiffDocumentProducer p = (DiffDocumentProducer)o;
+			return this.reader.equals(p.reader);
+		}
+		return false;
+	}
 
   public static  Document createEmptyDocument() {
     final Document doc = new Document();
@@ -82,7 +112,6 @@ public class DiffDocumentProducer implements Runnable {
     int linenumber = 1;
 		final StringBuffer abuff = new StringBuffer("");
 		final StringBuffer rbuff = new StringBuffer("");
-    this.producers.add(this);
     try {
       while ( (line = this.reader.readLine()) != null ) {
         Document doc = this.poolq.take();
@@ -128,14 +157,17 @@ public class DiffDocumentProducer implements Runnable {
         }
 
         ++linenumber;
-        prodq.put(doc);
+				if ( this.filter.pass(doc) ) {
+					this.prodq.put(doc);
+				} else {
+					this.poolq.put(doc);
+				}
       }
 		} catch ( InterruptedException e ) {
 			System.out.println(e);
 		} catch ( IOException e ) {
 			System.out.println(e);
 		} finally {
-      this.producers.remove(this);
     }
   }
 
