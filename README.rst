@@ -27,9 +27,15 @@ You invoke the indexer on the command line using the following command[#]_: ::
 
  CLASSPATH=$CLASSPATH:target/diffdb-0.1.jar java org.wikimedia.diffdb.Indexer ~/diffdbtest/index ~/diffdbtest/data/diffs
 
-and then the interactive searcher with the following command: ::
+then the searcher daemon with the following command: ::
 
- CLASSPATH=$CLASSPATH:target/diffdb-0.1.jar java org.wikimedia.diffdb.Searcher -index ~/diffdbtest/index
+ CLASSPATH=$CLASSPATH:target/diffdb-0.1.jar java org.wikimedia.diffdb.SearcherDaemon -index ~/diffdbtest/index
+
+and then you can issue a query with an accompanying script to see which revisions are matched and when they are dated: ::
+
+ ./query.py "Welcome to Wikipedia" -R -o monthly_hits.csv
+
+With the parameters above, the script will find revisions containing "Welcome to Wikipedia" as added text.  You can also search for other fields.  See below for a more detailed format of the query syntax.
 
 Requirements
 =====================
@@ -39,6 +45,33 @@ Requirements
 * opencsv
 * junit
 * netty
+
+Query format
+=====================
+(to be expanded)
+
+Following fields can be searched over.  When multiple fields are specified, the searcher will retrieve revisions containing all fields as specified.
+
+* rev_id
+* page_id
+* namespace
+* title
+* timestamp
+* comment
+* minor
+* user_id
+* user_text
+* added_size
+* removed_size
+* added
+* removed
+* action
+
+Configurations
+=====================
+(to be written)
+* Type of analysis to convert a document to the index representation including the value of N in N-gram indexing
+* Number of threads used in indexing
 
 Architecture
 =====================
