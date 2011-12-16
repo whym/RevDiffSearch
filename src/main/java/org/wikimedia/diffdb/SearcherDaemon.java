@@ -2,6 +2,7 @@ package org.wikimedia.diffdb;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -32,6 +33,10 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.KeywordTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -83,9 +88,7 @@ public class SearcherDaemon implements Runnable {
     
     bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
         @Override
-          public ChannelPipe
-
-line getPipeline() throws Exception {
+          public ChannelPipeline getPipeline() throws Exception {
           ChannelPipeline pipeline = Channels.pipeline(new SearcherHandler(searcher, parser));
           Charset charset = Charset.forName("UTF-8");
 					
@@ -102,35 +105,69 @@ line getPipeline() throws Exception {
 
 	private static class MyCollector extends Collector {
 		private final IndexSearcher searcher;
-		private final String query;
 		private final BitSet hits;
+		private final Map<String,String> queryFields;
 		private int docBase;
 		private int maxRevs;
 		private int positives;
 		private int skipped;
 
 		public MyCollector(IndexSearcher searcher, String query, int max) {
-			this.query = query;
 			this.searcher = searcher;
 			this.hits = new BitSet(searcher.getIndexReader().maxDoc());
 			this.maxRevs = max;
 			this.positives = 0;
 			this.skipped = 0;
+			this.queryFields = getQueryFields(query);
 		}
+		private static Map<String,String> getQueryFields(String query) {
+			final Map<String,String> map = new TreeMap<String,String>();
+			try {
+				QueryParser ps = new QueryParser(Version.LUCENE_35, "added", new Analyzer() {
+						public final TokenStream tokenStream(final String field, final Reader reader) {
+							final TokenStream ts = new KeywordTokenizer(reader);
+							return new TokenStream() {
+								CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
+								public boolean incrementToken() throws IOException {
+									if ( ts.incrementToken() ) {
+										map.put(field, termAtt.toString());
+										return true;
+									} else {
+										return false;
+									}
+								}
+							};
+						}
+						public final TokenStream reusableTokenStream(String field, final Reader reader) {
+							return tokenStream(field, reader);
+						}
+					});
+				ps.parse(query);
+			} catch ( ParseException e ) {
+				logger.severe(e.toString());
+			}
+			return map;
+		}
+
 		public boolean acceptsDocsOutOfOrder() {
 			return true;
 		}
+
 		public void setNextReader(IndexReader reader, int docBase) {
 			this.docBase = docBase;
 		}
+
 		public void setScorer(Scorer scorer) {
 		}
+
 		public int positives() {
 			return this.positives;
 		}
+
 		public int skipped() {
 			return this.skipped;
 		}
+
 		public void collect(int doc) {
 			doc += this.docBase;
 			++this.positives;
@@ -141,12 +178,13 @@ line getPipeline() throws Exception {
 				return;
 			}					
 			try {
-				if ( ( searcher.doc(doc).getField("added").stringValue().indexOf(this.query) >= 0
-							 || searcher.doc(doc).getField("removed").stringValue().indexOf(this.query) >= 0  ) ) {
-					this.hits.set(doc);
-				} else {
-					this.hits.clear(doc);
+				for ( Map.Entry<String,String> ent: this.queryFields.entrySet() ) {
+					if ( searcher.doc(doc).getField(ent.getKey()).stringValue().indexOf(ent.getValue()) < 0 ) {
+						this.hits.clear(doc);
+						return;
+					}
 				}
+				this.hits.set(doc);
 			} catch (IOException e) {
 				logger.severe("failed to read " + doc);
 			} catch ( IllegalArgumentException e ) {
