@@ -45,6 +45,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', metavar='FILE',
                         dest='output', type=lambda x: open(x, 'w'), default=sys.stdout,
                         help='')
+    parser.add_argument('-D', '--daily',
+                        dest='daily', action='store_true', default=False,
+                        help='')
     parser.add_argument('-v', '--verbose',
                         dest='verbose', action='store_true', default=False,
                         help='turn on verbose message output')
@@ -58,9 +61,13 @@ if __name__ == '__main__':
     if options.verbose:
         print >>sys.stderr, querystr
 
+    if not options.start and options.end:
+        options.start = '0'     # some value lexicographically lesser than any year
+    if options.start and not options.end:
+        options.end = 'Z'       # some value lexicographically greater than any year
     if options.start and options.end:
         querystr += ' timestamp:[%s TO %s]' % (options.start, options.end)
-    query = {'q': querystr, 'max_revs': options.maxrevs, 'collapse_hits': 'month', 'fields': ['rev_id'] if options.revisions else []}
+    query = {'q': querystr, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
     result = search('localhost', 8080, query)
 
     if options.verbose:
