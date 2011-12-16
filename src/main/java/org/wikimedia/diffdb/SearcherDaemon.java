@@ -45,6 +45,9 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
@@ -260,8 +263,10 @@ public class SearcherDaemon implements Runnable {
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
 			long processingStartMillis = System.currentTimeMillis();
 			try {
-				JSONObject qobj = new JSONObject(((ChannelBuffer)e.getMessage()).toString(Charset.defaultCharset()));
-				logger.info("received query: " + qobj.toString(2) + " at " + ctx);
+				String qstr = ((ChannelBuffer)e.getMessage()).toString(Charset.defaultCharset());
+				logger.info("received query: " + qstr + " at " + ctx);
+				JSONObject qobj = new JSONObject(qstr);
+				logger.info("received query (JSON): " + qobj.toString(2) + " at " + ctx);
 				String query   = qobj.getString("q");						 // to be fed to QueryParser
 				String hitsper = qobj.optString("collapse_hits", "no"); // no or day or month
 				int maxrevs    = qobj.optInt("max_revs", 1000);
@@ -325,8 +330,15 @@ public class SearcherDaemon implements Runnable {
 
 				ret.put("elapsed", System.currentTimeMillis() - processingStartMillis);
 				String str = ret.toString();
-				e.getChannel().write(str);
+				ChannelFuture f = e.getChannel().write(str);
 				logger.info("responded in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - processingStartMillis) + " (" + str.length() + " characters)");
+				f.addListener(new ChannelFutureListener() {
+            public void operationComplete(ChannelFuture future) {
+							Channel ch = future.getChannel();
+							ch.close();
+							logger.info("connection closed");
+            }
+        });
       } catch (IOException ex) {
         e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
 				ex.printStackTrace();
