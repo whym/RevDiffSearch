@@ -99,8 +99,8 @@ public class SearcherDaemon implements Runnable {
         }
       });
     
-    bootstrap.bind(address);
-		logger.info("SearcherDaemon is launched in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - this.startTimeMillis));
+    bootstrap.bind(this.address);
+		logger.info("SearcherDaemon is launched in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - this.startTimeMillis) + " at " + this.address);
 	}
 
 	private static class MyCollector extends Collector {

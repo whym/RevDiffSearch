@@ -100,7 +100,7 @@ public class TestSearcherDaemon {
     indexer.finish();
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
-    new Thread(new SearcherDaemon(new InetSocketAddress(8080), searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(new InetSocketAddress(8083), searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
 
     Thread.sleep(1000L);
 
@@ -109,7 +109,7 @@ public class TestSearcherDaemon {
       JSONObject q = new JSONObject();
       q.put("q", "namespace:0 page_id:12");
       q.put("fields", "rev_id");
-      JSONObject json = retrieve(new InetSocketAddress(8080), q);
+      JSONObject json = retrieve(new InetSocketAddress(8083), q);
       System.err.println(json);//!
       assertEquals(1, json.getInt("hits_all"));
       assertEquals(18201, json.getJSONArray("hits").getJSONArray(0).getInt(0));
