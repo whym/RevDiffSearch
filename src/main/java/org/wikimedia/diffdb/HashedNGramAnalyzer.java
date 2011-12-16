@@ -2,6 +2,7 @@ package org.wikimedia.diffdb;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.KeywordTokenizer;
 import java.io.Reader;
 
 public class HashedNGramAnalyzer extends Analyzer {
@@ -16,7 +17,11 @@ public class HashedNGramAnalyzer extends Analyzer {
 	}
 
 	public final TokenStream tokenStream(String field, final Reader reader) {
-		return new HashedNGramTokenizer(reader, this.minN, this.maxN, this.seed);
+		if ( SearchProperty.getInstance().getProperty(field).isAnalyzed() ) {
+			return new HashedNGramTokenizer(reader, this.minN, this.maxN, this.seed);
+		} else {
+			return new KeywordTokenizer(reader);
+		}
 	}
 	public final TokenStream reusableTokenStream(String field, final Reader reader) {
 		return tokenStream(field, reader);

@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 
 public class TestSimpleNGramAnalyzer {
   @Test public void shortString() throws IOException {
-    TokenStream ts = new SimpleNGramAnalyzer(3).tokenStream("default", new StringReader("cadabra"));
+    TokenStream ts = new SimpleNGramAnalyzer(3).tokenStream("title", new StringReader("cadabra"));
     PositionIncrementAttribute posIncr = (PositionIncrementAttribute)
       ts.addAttribute(PositionIncrementAttribute.class);
     CharTermAttribute term = (CharTermAttribute)ts.addAttribute(CharTermAttribute.class);

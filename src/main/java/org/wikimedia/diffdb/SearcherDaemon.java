@@ -83,7 +83,9 @@ public class SearcherDaemon implements Runnable {
     
     bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
         @Override
-          public ChannelPipeline getPipeline() throws Exception {
+          public ChannelPipe
+
+line getPipeline() throws Exception {
           ChannelPipeline pipeline = Channels.pipeline(new SearcherHandler(searcher, parser));
           Charset charset = Charset.forName("UTF-8");
 					

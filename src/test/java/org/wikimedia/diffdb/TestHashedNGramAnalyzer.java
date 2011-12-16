@@ -23,7 +23,7 @@ public class TestHashedNGramAnalyzer {
     return MurmurHash.hash32(s.getBytes(), s.getBytes().length, seed);
   }
   @Test public void shortString() throws IOException {
-    TokenStream ts = new HashedNGramAnalyzer(3,4,11).tokenStream("default", new StringReader("cadabra"));
+    TokenStream ts = new HashedNGramAnalyzer(3,4,11).tokenStream("title", new StringReader("cadabra"));
     OffsetAttribute offset = (OffsetAttribute) ts.addAttribute(OffsetAttribute.class);
     CharTermAttribute terma = (CharTermAttribute) ts.addAttribute(CharTermAttribute.class);
     NGramHashAttribute hasha = (NGramHashAttribute)ts.addAttribute(NGramHashAttribute.class);
@@ -40,7 +40,7 @@ public class TestHashedNGramAnalyzer {
                                          new IndexWriterConfig(Version.LUCENE_35,
                                                                new HashedNGramAnalyzer(3, 4, 1234)));
     Document doc = new Document();
-    doc.add(new Field("f1", "help", Field.Store.YES, Field.Index.ANALYZED));
+    doc.add(new Field("title", "help", Field.Store.YES, Field.Index.ANALYZED));
     writer.addDocument(doc);
     writer.commit();
     writer.optimize();
@@ -48,7 +48,7 @@ public class TestHashedNGramAnalyzer {
     IndexReader reader = IndexReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     HashedNGramTokenizer tk = new HashedNGramTokenizer(null, 3, 4, 1234);
-    Query query = new TermQuery(new Term("f1", tk.encodeIntegerAsString(tk.hashString("hel"))));
+    Query query = new TermQuery(new Term("title", tk.encodeIntegerAsString(tk.hashString("hel"))));
     final int[] hit = new int []{-1};
     searcher.search(query, new Collector() {
         private int docBase;

@@ -14,12 +14,22 @@ public class SearchProperty {
 	public static final Pattern TIMESTAMP_PATTERN = Pattern
 			.compile("timestamp:\\[[0-9\\-\\sTO\\s]*\\]");
 	public static final Pattern DIGIT_PATTERN = Pattern.compile(":[0-9]*\\s");
+  private static final SearchProperty singleton;
+  private static Property defaultProp = new Property("__default__", Field.Store.NO,
+                                                     Field.Index.NOT_ANALYZED, STRING_PATTERN);
+  static {
+    singleton = new SearchProperty();
+  }
+
+  public static SearchProperty getInstance() {
+    return singleton;
+  }
 
 	public Map<String, Property> propTypes = null;
 
 	// Note that fields which are not stored are not available in documents
 	// retrieved from the index
-	public class Property {
+	public static class Property {
 
 		private final String name;
 		private final Store store;
@@ -70,7 +80,11 @@ public class SearchProperty {
 		}
 	}
 
-	public Map<String, Property> init() {
+	public Map<String, Property> getPropertyTypes() {
+    return this.propTypes;
+  }
+
+  private SearchProperty(){
 		propTypes = new HashMap<String, Property>();
 		// private static final HashMap<String, SearchProperty> propTypes = new
 		// HashMap<String, SearchProperty>();
@@ -103,11 +117,15 @@ public class SearchProperty {
 				Field.Index.ANALYZED, STRING_PATTERN));
 		propTypes.put("action", new Property("action", Field.Store.YES,
 				Field.Index.NOT_ANALYZED, DIGIT_PATTERN));
-		return propTypes;
+		//propTypes.put("__default__", );
 	}
 
 	public Property getProperty(String name) {
-		return this.propTypes.get(name);
+		Property p = this.propTypes.get(name);
+    if ( p == null ) {
+      p = defaultProp;
+    }
+    return p;
 	}
 
 	public Map<String, Property> getProptypes() {

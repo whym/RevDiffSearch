@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,17 +31,17 @@ public class QueryParserCustom {
     this.analyzer = analyzer;
   }
 	
-	private HashMap<String, String> deconstruct(String query) {
-		HashMap<String, String> terms = new HashMap<String, String>();
+	private Map<String, String> deconstruct(String query) {
+		Map<String, String> terms = new HashMap<String, String>();
 		String term = null;
-		StringBuilder sb = new StringBuilder();
-		sb.append(query);
-		SearchProperty sp = new SearchProperty();
-		Map<String, Property> properties = sp.init();
-		Iterator<Entry<String, Property>> it = properties.entrySet().iterator();
-		while (it.hasNext()){
-			Property prop = it.next().getValue();
-			if (sb.indexOf(prop.name()) >-1) {
+		StringBuffer sb = new StringBuffer();
+		SearchProperty sp = SearchProperty.getInstance();
+    System.err.println(sp.getPropertyTypes());//!
+		Map<String, Property> properties = sp.getPropertyTypes();
+		for ( Map.Entry<String, Property> ent: properties.entrySet() ) {
+      System.err.println(ent);//!
+			Property prop = ent.getValue();
+			if (sb.indexOf(prop.name()) >= 0) {
 				Matcher match = prop.pattern().matcher(sb);
 				if (match.find()) {
 					int start = match.start() +1;
@@ -69,11 +70,11 @@ public class QueryParserCustom {
 	}
 	
 
-	private String reconstruct(HashMap<String, String> terms) {
+	private String reconstruct(Map<String, String> terms) {
 		String query ="";
 	    Iterator<Entry<String, String>> it = terms.entrySet().iterator();
-	    SearchProperty sp = new  SearchProperty();
-	    Map<String, Property> properties = sp.init();
+	    SearchProperty sp = SearchProperty.getInstance();
+	    Map<String, Property> properties = sp.getPropertyTypes();
 	    while (it.hasNext()) {
 	        Map.Entry<String, String> pairs = (Map.Entry<String, String>)it.next();
 	        Property prop = properties.get(pairs.getKey());
@@ -118,10 +119,9 @@ public class QueryParserCustom {
 	
 	
 	public Query construct(String querystr)  {
-		HashMap<String, String> terms = deconstruct(querystr);
+		Map<String, String> terms = deconstruct(querystr);
 		String queryterms = reconstruct(terms);
 		Query query = null;
-    System.err.println("----" + this.matchVersion + queryterms + this.analyzer);//!
 		QueryParser qp =  new QueryParser(this.matchVersion, queryterms, this.analyzer);
 		try {
 			query = qp.parse(queryterms);
@@ -129,7 +129,7 @@ public class QueryParserCustom {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println(query.toString());
+		System.err.println(query); //!
 		return query;
 	}
 }

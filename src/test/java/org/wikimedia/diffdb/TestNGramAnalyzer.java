@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 
 public class TestNGramAnalyzer {
   @Test public void shortString() throws IOException {
-    TokenStream ts = new NGramAnalyzer(3,4).tokenStream("default", new StringReader("cadabra"));
+    TokenStream ts = new NGramAnalyzer(3,4).tokenStream("title", new StringReader("cadabra"));
     OffsetAttribute offset = (OffsetAttribute) ts.addAttribute(OffsetAttribute.class);
     CharTermAttribute term = (CharTermAttribute)ts.addAttribute(CharTermAttribute.class);
     List<Integer> offsets = new ArrayList<Integer>();
