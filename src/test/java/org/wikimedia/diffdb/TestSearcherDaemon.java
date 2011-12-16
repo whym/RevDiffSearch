@@ -114,18 +114,6 @@ public class TestSearcherDaemon {
       assertEquals(1, json.getInt("hits_all"));
       assertEquals(18201, json.getJSONArray("hits").getJSONArray(0).getInt(0));
     }
-    // query "Accessible" and receive rev_ids and timestamps
-    {
-      JSONObject q = new JSONObject();
-      q.put("q", "Accessible");
-      q.put("fields", new JSONArray(new String[]{"rev_id", "timestamp"}));
-      JSONObject json = retrieve(new InetSocketAddress(8080), q);
-      assertEquals(1, json.getInt("hits_all"));
-      assertEquals(233192,
-                   json.getJSONArray("hits").getJSONArray(0).getInt(0));
-      assertEquals("2001-01-21T11:12:21Z",
-                   json.getJSONArray("hits").getJSONArray(0).getString(1));
-    }
   }
 
   @Test public void smallDocumentsWithCollapsedHits() throws IOException, JSONException, InterruptedException {
