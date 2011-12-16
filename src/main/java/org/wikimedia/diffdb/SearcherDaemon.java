@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Collector;
@@ -268,11 +269,13 @@ public class SearcherDaemon implements Runnable {
 				JSONArray fields_ = qobj.optJSONArray("fields"); // the fields to be given in the output. if empty, only number of hits will be emitted
 
 				MyCollector collector = new MyCollector(this.searcher, query, maxrevs);
-				this.searcher.search(this.parser.parse(query), collector);
+				Query parsedQuery = this.parser.parse(query);
+				this.searcher.search(parsedQuery, collector);
 				BitSet hits = collector.getHits();
 				JSONObject ret = new JSONObject();
 
 				ret.put("hits_all", hits.cardinality());
+				ret.put("parsed_query", parsedQuery);
 
 				List<String> fields = new ArrayList<String>();
 				if ( fields_ == null ) {
