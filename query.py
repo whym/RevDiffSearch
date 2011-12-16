@@ -69,6 +69,8 @@ if __name__ == '__main__':
         querystr += ' timestamp:[%s TO %s]' % (options.start, options.end)
     query = {'q': querystr, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
     result = search('localhost', 8080, query)
+    if options.namespace:
+        querystr += ' namespace:' + options.namespace
 
     if options.verbose:
         print >>sys.stderr, result
@@ -85,5 +87,7 @@ if __name__ == '__main__':
     if options.debug:
         writer.writerow(['# raw: %s' % repr(result)])
         writer.writerow(['# elapsed: %s' % repr(result['elapsed'])])
-        writer.writerow(['# 1st-pass precision: %f' % (result['hits_all'] / (result['debug_positives'] - result['debug_unchecked']))])
+        checked = result['debug_positives'] - result['debug_unchecked']
+        if checked != 0:
+            writer.writerow(['# 1st-pass precision: %f' % (result['hits_all'] / checked)])
         writer.writerow(['# unchecked: %d' % result['debug_unchecked']])
