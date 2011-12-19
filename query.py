@@ -54,6 +54,9 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--debug',
                         dest='debug', action='store_true', default=False,
                         help='turn on debug output')
+    parser.add_argument('-a', '--advanced',
+                        dest='advanced', action='store_true', default=False,
+                        help='turn on advanced query format')
     parser.add_argument('inputs', nargs='+')
     options = parser.parse_args()
     querystr = ' '.join(options.inputs)
@@ -67,6 +70,8 @@ if __name__ == '__main__':
         options.end = 'Z'       # some value lexicographically greater than any year
     if options.start and options.end:
         querystr += ' timestamp:[%s TO %s]' % (options.start, options.end)
+    if not options.advanced:
+        querystr = '"%s"' % querystr.replace('"', '\\"')
     query = {'q': querystr, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
     result = search('localhost', 8080, query)
     if options.namespace:
