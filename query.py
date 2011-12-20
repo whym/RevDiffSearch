@@ -22,6 +22,24 @@ def search(host, port, query):
     s.close()
     return json.loads(result)
 
+def format_result(writer, result, debug):
+    for (date,res) in result['hits']:
+        cols = [date]
+        if type(res) == list:
+            cols.append(len(res))
+            cols += ['=HYPERLINK("http://enwp.org/?diff=%s","%s")' % (x[0],x[0]) for x in res] # assuming having received a list of rev ids
+        else:
+            cols.append(res)
+        writer.writerow(cols)
+    if debug:
+        writer.writerow(['# raw: %s' % repr(result)])
+        writer.writerow(['# elapsed: %s' % repr(result['elapsed'])])
+        checked = result['debug_positives'] - result['debug_unchecked']
+        if checked != 0:
+            writer.writerow(['# 1st-pass precision: %f' % (result['hits_all'] / checked)])
+        writer.writerow(['# unchecked: %d' % result['debug_unchecked']])
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -81,18 +99,4 @@ if __name__ == '__main__':
         print >>sys.stderr, result
 
     writer = csv.writer(options.output)
-    for (date,res) in result['hits']:
-        cols = [date]
-        if type(res) == list:
-            cols.append(len(res))
-            cols += ['=HYPERLINK("http://enwp.org/?diff=%s","%s")' % (x[0],x[0]) for x in res] # assuming having received a list of rev ids
-        else:
-            cols.append(res)
-        writer.writerow(cols)
-    if options.debug:
-        writer.writerow(['# raw: %s' % repr(result)])
-        writer.writerow(['# elapsed: %s' % repr(result['elapsed'])])
-        checked = result['debug_positives'] - result['debug_unchecked']
-        if checked != 0:
-            writer.writerow(['# 1st-pass precision: %f' % (result['hits_all'] / checked)])
-        writer.writerow(['# unchecked: %d' % result['debug_unchecked']])
+    format_result(writer, result, debug=options.debug)
