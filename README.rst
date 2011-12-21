@@ -35,10 +35,11 @@ and then you can issue a query with an accompanying script to see which revision
 
  ./query.py "Welcome to Wikipedia" -R -o monthly_hits.csv
 
-With the parameters above, the script will find revisions containing "Welcome to Wikipedia" as added text.  You can also search for other fields.  See below for a more detailed format of the query syntax.
+With the parameters above, the script will find revisions containing "Welcome to Wikipedia" as added text.  You can also search for other fields.  See below for a more detailed format of the query format.
 
 Requirements
 =====================
+
 * Apache Maven
 * Apache Lucene 3.5.0
 * Apache Commons Lang 3.0.1
@@ -48,9 +49,10 @@ Requirements
 
 Query format
 =====================
-(to be expanded)
 
-Following fields can be searched over.  When multiple fields are specified, the searcher will retrieve revisions containing all fields as specified.
+Following fields can be searched over.  When multiple fields are
+specified, the searcher will retrieve revisions containing all fields
+as specified.
 
 * rev_id
 * page_id
@@ -67,9 +69,26 @@ Following fields can be searched over.  When multiple fields are specified, the 
 * removed
 * action
 
+For example, to find the revisions that contains the string 'Welcome
+to Wikipedia' and were made within January 2006 and January 2007, you
+will use ::
+
+ added:"Welcome to Wikipedia" timestamp:[2002-01 TO 2003-01]
+
+This query format is used when using ``query.py`` with a
+``--advanced`` flag turned on, or directly connecting to the
+SearcherDaemon via telnet.  By default ``query.py`` use a command line
+argument as a phrase query to the ``added`` field.
+
+See `Lucene's Query Parser Syntax`_ for more details.
+
+(to be expanded)
+
 Configurations
 =====================
-(to be written)
+
+(to be expanded)
+
 * Type of analysis to convert a document to the index representation including the value of N in N-gram indexing
 * Number of threads used in indexing
 
@@ -82,6 +101,7 @@ Architecture
 * Searcher daemon
 
 .. _Apache Maven: http://maven.apache.org/
+.. _Lucene's Query Parser Syntax: http://lucene.apache.org/java/3_5_0/queryparsersyntax.html
 .. [#] ~/diffdbtest/data/diffs must contains the revision diff files explained at http://meta.wikimedia.org/wiki/WSoR_datasets/revision_diff
 
 .. Local variables:
