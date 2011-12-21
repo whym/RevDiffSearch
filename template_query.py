@@ -48,12 +48,19 @@ def gen_prev_next(ls, last=None):
 
 def inject_result(accum, new):
     datehits = {}
+    hitsall = 0
     for dic in [new['hits'], accum['hits']]:
         for (date,hits) in dic:
-            datehits.setdefault(date, 0 if type(hits) == int else set())
-            datehits[date] = datehits[date].union(hits)
+            if type(hits) == int:
+                datehits.setdefault(date, 0)
+                datehits[date] = datehits[date] + hits
+            else:
+                datehits.setdefault(date, set())
+                datehits[date] = datehits[date].union(hits)
+            hitsall += len(datehits[date])
     ret = copy.deepcopy(accum)
     ret['hits'] = sorted(datehits.items(), key=lambda x: x[0])
+    ret['hits_all'] = hitsall
     return ret
 
 def escape_variables(text):
@@ -91,7 +98,7 @@ if __name__ == '__main__':
     query = {'q': None, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
 
     writer = csv.writer(options.output)
-    result = {'hits': []}
+    result = {'hits': [], 'hits_all': 0}
     for title in titles:
         try:
             texts = []
@@ -105,10 +112,13 @@ if __name__ == '__main__':
                 for ((revPrev,timePrev), (revNext,timeNext)) in gen_prev_next([(x, x.getTimestamp()) for x in revs], (None, int(time.time()))):
 
                     query['q'] = ' '.join(['"%s"' % x for x in escape_variables(revPrev.getText())])
+                    timePrev = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(timePrev))
+                    timeNext = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(timeNext))
+                    query['q'] += ' timestamp:[%s TO %s]' % (timePrev, timeNext)
                     print query
                     res = query_func.search('localhost', 8080, query)
                     inject_result(result, res)
-                    print res
+                    print result['hits_all']
                     #print revPrev.getText()
                     #print revPrev.getId(), timePrev, timeNext - timePrev, revPrev.getText()[:20]
                 #     if revPrev.getText().find(cs.decode('utf-8')) < 0:
@@ -121,6 +131,7 @@ if __name__ == '__main__':
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
     print result
+    query_func.format_result(writer, result, debug=options.debug)
 #<span class="plainlinks">[{{{2}}} this edit]</span> you made to [[:{{{1}}}]].  If you [[Wikipedia:Vandalism|vandalize]] Wikipedia again, you will be '''[[Wikipedia:Blocking policy|blocked from  editing]] without  further notice'''.  <!-- Template:uw-huggle4 --> ~~<noinclude></noinclude>~~_[[Image:Stop hand nuvola.svg|30px]] This is the '''final 
         # if options.namespace:
         #     querystr += ' namespace:' + options.namespace
