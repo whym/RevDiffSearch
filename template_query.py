@@ -14,10 +14,14 @@ import time
 import urllib2
 import traceback
 import copy
+import re
 import wmf
 import lcp
 import query as query_func
 from wmf.dump.iterator import Iterator
+
+pattern_void  = re.compile(r'(<noinclude>.*?</noinclude>)', flags=re.M|re.MULTILINE)
+pattern_split = re.compile(r"(\{\{[A-Z]+\}\}|\{\{#.*\}\}|\n|__[A-Z]+__|\n|\{\{\{\d\}\}\}|\{\{|\}\}|\#|~~~~|~~~)")
 
 def load_revisions(title):
     url  ='http://en.wikipedia.org/wiki/Special:Export/%s?history' % urllib2.quote(title)
@@ -44,13 +48,17 @@ def gen_prev_next(ls, last=None):
 
 def inject_result(accum, new):
     datehits = {}
-    for dic in [dict(new['hits']), dict(accum['hits'])]:
+    for dic in [new['hits'], accum['hits']]:
         for (date,hits) in dic:
-            datehits[date].setdefault(0 if type(hits) == int else [])
-            datehits[date] += hits
+            datehits.setdefault(date, 0 if type(hits) == int else set())
+            datehits[date] = datehits[date].union(hits)
     ret = copy.deepcopy(accum)
     ret['hits'] = sorted(datehits.items(), key=lambda x: x[0])
     return ret
+
+def escape_variables(text):
+    return map(lambda x: x.replace('"', '\\"'), filter(lambda x: not re.match(pattern_split, x) and len(x) >= 4, re.split(pattern_split, re.sub(pattern_void, '', text))))
+    # 'len(x) >= 4' is a fix for 4-gram
 
 if __name__ == '__main__':
 
@@ -96,9 +104,11 @@ if __name__ == '__main__':
                 # missed = 0
                 for ((revPrev,timePrev), (revNext,timeNext)) in gen_prev_next([(x, x.getTimestamp()) for x in revs], (None, int(time.time()))):
 
-                    query['q'] = '"%s"' % revPrev.getText().replace('"', '//"')
+                    query['q'] = ' '.join(['"%s"' % x for x in escape_variables(revPrev.getText())])
+                    print query
                     res = query_func.search('localhost', 8080, query)
                     inject_result(result, res)
+                    print res
                     #print revPrev.getText()
                     #print revPrev.getId(), timePrev, timeNext - timePrev, revPrev.getText()[:20]
                 #     if revPrev.getText().find(cs.decode('utf-8')) < 0:
