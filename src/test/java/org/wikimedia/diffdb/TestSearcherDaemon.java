@@ -188,7 +188,7 @@ public class TestSearcherDaemon {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
                                          new IndexWriterConfig(Version.LUCENE_35,
-                                                               new HashedNGramAnalyzer(3, 3, 11)));
+                                                               new HashedNGramAnalyzer(3, 4, 11)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
@@ -196,7 +196,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new HashedNGramAnalyzer(3, 3, 11)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new HashedNGramAnalyzer(3, 4, 11)))).start();
 
     Thread.sleep(1000L);
 
