@@ -144,7 +144,6 @@ public class Indexer {
 		String dataDir = args[1];
 		double ramBufferSizeMB = 1024;
 		int poolsize = nThreads * 10000;
-		int ngram = 3;
 		DiffDocumentProducer.Filter filter = DiffDocumentProducer.Filter.PASS_ALL;
 		{
 			String s;
@@ -160,9 +159,6 @@ public class Indexer {
 			if ( (s = System.getProperty("ramBufferSize")) != null ) {
 				ramBufferSizeMB = Integer.parseInt(s);
 			}
-			if ( (s = System.getProperty("ngram")) != null ) {
-				ngram = Integer.parseInt(s);
-			}
 			if ( (s = System.getProperty("filter")) != null ) {
 				filter = DiffDocumentProducer.Filter.valueOf(s);
 			}
@@ -176,7 +172,7 @@ public class Indexer {
 		// http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
 
 		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_35,
-																									new SimpleNGramAnalyzer(ngram));
+																									DiffDbUtils.getAnalyzer());
 		cfg.setOpenMode(OpenMode.CREATE_OR_APPEND); // http://lucene.apache.org/java/3_2_0/api/core/org/apache/lucene/index/IndexWriterConfig.OpenMode.html#CREATE_OR_APPEND
 		cfg.setRAMBufferSizeMB(ramBufferSizeMB);
 		cfg.setMergePolicy(lmp);

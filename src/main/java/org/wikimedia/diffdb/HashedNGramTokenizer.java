@@ -164,7 +164,7 @@ public final class HashedNGramTokenizer extends Tokenizer {
     // set final offset
     final int finalOffset = this.inLen;
     this.offsetAtt.setOffset(finalOffset, finalOffset);
-  }    
+  }
   
   @Override
   public void reset(Reader input) throws IOException {
