@@ -31,14 +31,14 @@ public class SimpleNGramAnalyzer extends Analyzer {
 		this.n = n;
 	}
 
-	public final TokenStream tokenStream(String field, final Reader reader) {
+	@Override public final TokenStream tokenStream(String field, final Reader reader) {
 		if ( SearchProperty.getInstance().getProperty(field).isAnalyzed() ) {
 			return new SimpleNGramTokenizer(reader, this.n);
 		} else {
 			return new KeywordTokenizer(reader);
 		}
 	}
-	public final TokenStream reusableTokenStream(String field, final Reader reader) {
+	@Override public final TokenStream reusableTokenStream(String field, final Reader reader) {
 		return tokenStream(field, reader);
 	}
 }

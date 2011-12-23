@@ -223,6 +223,82 @@ public class TestSearcherDaemon {
                    json.getJSONArray("hits").getJSONArray(0).getString(1));
     }
   }
+
+  @Test public void phraseQueryWithSimpleNGramAnalysis() throws IOException, JSONException, InterruptedException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_35,
+                                                               new SimpleNGramAnalyzer(1)));
+    Indexer indexer = new Indexer(writer, 2, 2, 100);
+    indexer.indexDocuments(newTempFile("233192	10	0	'Title1'	980043141	u'comment1'	False	99	u'uname1'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
+                                       "18201	12	0	'Title2'	1014649222	u'comment2'	True	None	u'uname2'	9230:1:u'This covers the subject category'"));
+    indexer.finish();
+
+    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    InetSocketAddress address = findFreeAddress();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(1)))).start();
+
+    Thread.sleep(1000L);
+
+    // query "subject cover" without quotes and receive rev_ids
+    {
+      JSONObject q = new JSONObject();
+      q.put("q", "subject cover");
+      q.put("fields", "rev_id");
+      JSONObject json = retrieve(address, q);
+      System.err.println(json);//!
+      assertEquals(2, json.getInt("hits_all"));
+    }
+
+    // query "subject cover" with quotes and receive rev_ids
+    {
+      JSONObject q = new JSONObject();
+      q.put("q", "\"subject cover\"");
+      q.put("fields", "rev_id");
+      JSONObject json = retrieve(address, q);
+      System.err.println(json);//!
+      assertEquals(1, json.getInt("hits_all"));
+      assertEquals(233192, json.getJSONArray("hits").getJSONArray(0).getInt(0));
+    }
+  }
+
+  @Test public void phraseQueryWithNGramAnalysis() throws IOException, JSONException, InterruptedException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_35,
+                                                               new NGramAnalyzer(1, 2)));
+    Indexer indexer = new Indexer(writer, 2, 2, 100);
+    indexer.indexDocuments(newTempFile("233192	10	0	'Title1'	980043141	u'comment1'	False	99	u'uname1'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
+                                       "18201	12	0	'Title2'	1014649222	u'comment2'	True	None	u'uname2'	9230:1:u'This covers subjects of'"));
+    indexer.finish();
+
+    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    InetSocketAddress address = findFreeAddress();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new NGramAnalyzer(1, 2)))).start();
+
+    Thread.sleep(1000L);
+
+    // query "subject cover" without quotes and receive rev_ids
+    {
+      JSONObject q = new JSONObject();
+      q.put("q", "subject cover");
+      q.put("fields", "rev_id");
+      JSONObject json = retrieve(address, q);
+      System.err.println(json);//!
+      assertEquals(2, json.getInt("hits_all"));
+    }
+
+    // query "subject cover" with quotes and receive rev_ids
+    {
+      JSONObject q = new JSONObject();
+      q.put("q", "\"subject cover\"");
+      q.put("fields", "rev_id");
+      JSONObject json = retrieve(address, q);
+      System.err.println(json);//!
+      assertEquals(1, json.getInt("hits_all"));
+      assertEquals(233192, json.getJSONArray("hits").getJSONArray(0).getInt(0));
+    }
+  }
 }
 
 /*

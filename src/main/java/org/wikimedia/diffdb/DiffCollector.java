@@ -9,7 +9,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,7 +41,7 @@ public class DiffCollector extends Collector {
 
   private final IndexSearcher searcher;
   private final BitSet hits;
-  private final Map<String,String> queryFields;
+  private final Map<String,Set<String>> queryFields;
   private int docBase;
   private int maxRevs;
   private int positives;
@@ -52,35 +55,45 @@ public class DiffCollector extends Collector {
     this.skipped = 0;
     this.queryFields = getQueryFields(query);
   }
-  public static Map<String,String> getQueryFields(final String query) {
-    final Map<String,String> map = new TreeMap<String,String>();
+  public static Map<String,Set<String>> getQueryFields(final String query) {
+    final Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
+    final Map<String,Set<String>> rem = new HashMap<String,Set<String>>();
     try {
-      QueryParser ps = new QueryParser(Version.LUCENE_35, "added", new Analyzer() {
-          public final TokenStream tokenStream(final String field, final Reader reader) {
-            final TokenStream ts = new KeywordTokenizer(reader);
-            return new TokenStream() {
-              private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
-              public boolean incrementToken() throws IOException {
-                if ( ts.incrementToken() ) {
-                  String s = termAtt.toString();
-                  map.put(field, s);
-                  System.err.println("got: " + field + " " + s + " in " + query);//!
-                  return true;
-                } else {
-                  return false;
-                }
+      QueryParser ps = new QueryParser(Version.LUCENE_35, "added", new CallbackAnalyzer(new CallbackAnalyzer.Callback() {
+          public void execute(String field, String value) {
+            assert value.length() > 0;
+
+            Set<String> ls = ret.get(field);
+            if ( ls == null ) {
+              ls = new HashSet<String>();
+              ret.put(field, ls);
+            }
+            ls.add(value);
+
+            // remove substrings (TODO: this is inefficient)
+            ls = rem.get(field);
+            if ( ls == null ) {
+              ls = new HashSet<String>();
+              rem.put(field, ls);
+            }
+            for (int i = 0; i < value.length() - 1; ++i ) {
+              for (int j = i + 1; j < value.length(); ++j ) {
+                ls.add(value.substring(i, j));
               }
-            };
+            }
           }
-          public final TokenStream reusableTokenStream(String field, final Reader reader) {
-            return tokenStream(field, reader);
-          }
-        });
+        }));
       ps.parse(query);
     } catch ( ParseException e ) {
       logger.severe(e.toString());
     }
-    return map;
+    for ( Map.Entry<String,Set<String>> ent: ret.entrySet() ) {
+      Set<String> r = rem.get(ent.getKey());
+      if ( r != null ) {
+        ent.getValue().removeAll(r);
+      }
+    }
+    return ret;
   }
   
   public boolean acceptsDocsOutOfOrder() {
@@ -112,10 +125,13 @@ public class DiffCollector extends Collector {
       return;
     }					
     try {
-      for ( Map.Entry<String,String> ent: this.queryFields.entrySet() ) {
-        if ( searcher.doc(doc).getField(ent.getKey()).stringValue().indexOf(ent.getValue()) < 0 ) {
-          this.hits.clear(doc);
-          return;
+      for ( Map.Entry<String,Set<String>> ent: this.queryFields.entrySet() ) {
+        String str = searcher.doc(doc).getField(ent.getKey()).stringValue();
+        for ( String val: ent.getValue() ) {
+          if ( str.indexOf(val) < 0 ) {
+            this.hits.clear(doc);
+            return;
+          }
         }
       }
       this.hits.set(doc);
