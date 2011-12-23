@@ -57,6 +57,11 @@ public class DiffDocumentProducer implements Runnable {
 				public boolean pass(Document doc) {
 				return Integer.parseInt(doc.getField("namespace").stringValue()) % 2 == 1;
 			}
+		}, PASS_USER_TALK_NAMESPACE_ONLY {
+			@Override
+				public boolean pass(Document doc) {
+				return Integer.parseInt(doc.getField("namespace").stringValue()) == 3;
+			}
 		};
 		public abstract boolean pass(Document doc);
 	};
