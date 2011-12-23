@@ -5,9 +5,7 @@ Wikihadoop Lucene Indexer & Searcher
 Purpose
 =====================
 
-*Search* is one of the most useful means to look into a huge amount of text data.  When we deal with hundreds of millions of revisions in Wikipedia, we want to find an answer to questions like ''when did this template start to be popular in this wiki?'' and `a lot more`_.  However, it is almost impossible without a search capability over revision diffs.
-
-WikiHadoop [#]_ is a tool to create a database of the differences between two revisions for Wikipedia articles. While knowing who adds / removes certain content is very useful it is still cumbersome to search through the data.
+*Search* is one of the most useful means to look into a huge amount of text data.  When we deal with hundreds of millions of revisions in Wikipedia, we want to find an answer to questions like ''when did this template start to be popular in this wiki?'' and `a lot more`_.  However, it is almost impossible without a search capability over revision diffs.  `WikiHadoop` is a tool to create a database of the differences between two revisions for Wikipedia articles. While knowing who adds / removes certain content is very useful it is still cumbersome to search through the data.
 
 Hence, we developed a Lucene indexer that takes as input the diffdb created by Wikihadoop and creates an index that is searachable using Lucene.
 This indexer assumes the input files to be formatted as explained in [#]_.
@@ -23,7 +21,7 @@ How to use
 =====================
 We use `Apache Maven`_ to compile this software in to a jar file.  The jar file can be created by running the command ``mvn dependency:unpack-dependencies && mvn package`` in the top-level directory.
 
-You invoke the indexer on the command line using the following command[#]_: ::
+You invoke the indexer on the command line using the following command [#]_: ::
 
  CLASSPATH=$CLASSPATH:target/diffdb-0.1.jar java org.wikimedia.diffdb.Indexer ~/diffdbtest/index ~/diffdbtest/data/diffs
 
