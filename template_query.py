@@ -21,7 +21,7 @@ import query as query_func
 from wmf.dump.iterator import Iterator
 
 pattern_void  = re.compile(r'(<noinclude>.*?</noinclude>)', flags=re.M|re.MULTILINE)
-pattern_split = re.compile(r"(\{\{[A-Z]+\}\}|\{\{#.*\}\}|\n|__[A-Z]+__|\n|\{\{\{\d\}\}\}|\{\{|\}\}|\#|~~~~|~~~)")
+pattern_split = re.compile(r"(\{\{[A-Z]+\}\}|\{\{#.*\}\}|\n|__[A-Z]+__|\n|\{\{\{\d\}\}\}|\{\{|\}\}|\#|~~~~|~~~|'|\")")
 
 def load_revisions(title):
     url  ='http://en.wikipedia.org/wiki/Special:Export/%s?history' % urllib2.quote(title)
@@ -47,20 +47,16 @@ def gen_prev_next(ls, last=None):
         yield(prev,last)
 
 def inject_result(accum, new):
-    datehits = {}
+    datehits = accum['hits']
     hitsall = 0
-    for dic in [new['hits'], accum['hits']]:
+    for dic in [new['hits']]:
         for (date,hits) in dic:
             if type(hits) == int:
-                datehits.setdefault(date, 0)
-                datehits[date] = datehits[date] + hits
+                datehits[date] = datehits.setdefault(date, 0) + hits
             else:
-                datehits.setdefault(date, set())
-                datehits[date] = datehits[date].union(hits)
-            hitsall += len(datehits[date])
+                datehits[date] = datehits.setdefault(date, set()).union(set([x[0] for x in hits]))
     ret = copy.deepcopy(accum)
     ret['hits'] = sorted(datehits.items(), key=lambda x: x[0])
-    ret['hits_all'] = hitsall
     return ret
 
 def escape_variables(text):
@@ -71,7 +67,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--max', metavar='MAX_REVISIONS',
-                        dest='maxrevs', type=int, default=10000,
+                        dest='maxrevs', type=int, default=50000,
                         help='')
     parser.add_argument('-n', '--namespace', metavar='NAMESPACE_ID',
                         dest='namespace', type=str, default=None),
@@ -98,7 +94,7 @@ if __name__ == '__main__':
     query = {'q': None, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
 
     writer = csv.writer(options.output)
-    result = {'hits': [], 'hits_all': 0}
+    result = {'hits': {}, 'hits_all': 0}
     for title in titles:
         try:
             texts = []
@@ -115,10 +111,10 @@ if __name__ == '__main__':
                     timePrev = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(timePrev))
                     timeNext = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(timeNext))
                     query['q'] += ' timestamp:[%s TO %s]' % (timePrev, timeNext)
-                    print query
+                    print >>sys.stderr, query
                     res = query_func.search('localhost', 8080, query)
+                    print >>sys.stderr, res['hits_all']
                     inject_result(result, res)
-                    print result['hits_all']
                     #print revPrev.getText()
                     #print revPrev.getId(), timePrev, timeNext - timePrev, revPrev.getText()[:20]
                 #     if revPrev.getText().find(cs.decode('utf-8')) < 0:
@@ -130,7 +126,7 @@ if __name__ == '__main__':
 
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
-    print result
+    result['hits'] = [[x, [[z] for z in y]] for (x,y) in result['hits'].items()]
     query_func.format_result(writer, result, debug=options.debug)
 #<span class="plainlinks">[{{{2}}} this edit]</span> you made to [[:{{{1}}}]].  If you [[Wikipedia:Vandalism|vandalize]] Wikipedia again, you will be '''[[Wikipedia:Blocking policy|blocked from  editing]] without  further notice'''.  <!-- Template:uw-huggle4 --> ~~<noinclude></noinclude>~~_[[Image:Stop hand nuvola.svg|30px]] This is the '''final 
         # if options.namespace:
