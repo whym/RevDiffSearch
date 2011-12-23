@@ -57,23 +57,27 @@ public class Indexer {
 				public void run() {
 					try {
 						while ( true ) {
+							int docs = -1;
 							synchronized (this_) {
 								if ( !isClosed() ) {
-									System.err.println("" + writer.numDocs()
+									docs = writer.numDocs();
+								}
+							}
+							if ( docs < 0 ) {
+								break;
+							}
+							System.err.println("" + docs
 																		 + " documents have been indexed in "
 																		 + (System.currentTimeMillis() - start)
 																		 + " msecs (products " + prodq.size() + ")");
-									Thread.sleep(reportInterval);
-								} else {
-									break;
-								}
-							}
+							Thread.sleep(reportInterval);
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
 					} catch (InterruptedException e) {
 						System.err.println("Interrupted");
 					}
+					System.err.println("Finishing reporting");
 				}
 			}).start();
 
@@ -93,12 +97,11 @@ public class Indexer {
 	public boolean isClosed() {
 		return this.finished;
 	}
-	public synchronized void finish() throws InterruptedException, IOException {
+	public void finish() throws InterruptedException, IOException {
 		try {
 			// This will make the executor accept no new threads
 			// and finish all existing threads in the queue
 			this.producerExecutor.shutdown();
-			
 			// Wait until all threads are finish
 			while (!this.producerExecutor.isTerminated()) {
 				Thread.sleep(100L);
@@ -113,12 +116,15 @@ public class Indexer {
 			// this.writer.optimize();
 			System.out.println("Writing " + this.writer.numDocs() + " documents.");
 		} finally {
-			this.writer.close();
-			this.finished = true;
+			synchronized (this) {
+				this.writer.close();
+				this.finished = true;
+			}
 		}
 	}
 	
 	public void indexDocuments(File file) throws IOException {
+
 		if (file.canRead()) {
 			if (file.isDirectory()) {
 				for (File f : file.listFiles()) {
