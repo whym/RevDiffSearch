@@ -20,7 +20,7 @@ import lcp
 import query as query_func
 from wmf.dump.iterator import Iterator
 
-pattern_void  = re.compile(r'(<noinclude>.*?</noinclude>)', flags=re.M|re.MULTILINE)
+pattern_void  = re.compile(r'(<noinclude>.*?</noinclude>)', flags=re.DOTALL|re.MULTILINE)
 pattern_split = re.compile(r"(\{\{[A-Z]+\}\}|\{\{#.*\}\}|\n|__[A-Z]+__|\n|\{\{\{\d\}\}\}|\{\{|\}\}|\#|~~~~|~~~|'|\")")
 
 def load_revisions(title):
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--max', metavar='MAX_REVISIONS',
-                        dest='maxrevs', type=int, default=50000,
+                        dest='maxrevs', type=int, default=100000,
                         help='')
     parser.add_argument('-n', '--namespace', metavar='NAMESPACE_ID',
                         dest='namespace', type=str, default=None),
