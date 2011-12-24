@@ -74,9 +74,6 @@ if __name__ == '__main__':
     parser.add_argument('-R', '--revisions',
                         dest='revisions', action='store_true', default=False,
                         help='show revision IDs of the hits')
-    parser.add_argument('-o', '--output', metavar='FILE',
-                        dest='output', type=lambda x: open(x, 'w'), default=sys.stdout,
-                        help='')
     parser.add_argument('-D', '--daily',
                         dest='daily', action='store_true', default=False,
                         help='')
@@ -89,13 +86,11 @@ if __name__ == '__main__':
     parser.add_argument('inputs', nargs='+')
     options = parser.parse_args()
 
-    titles = options.inputs
-
-    query = {'q': None, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
-
-    writer = csv.writer(options.output)
-    result = {'hits': {}, 'hits_all': 0}
-    for title in titles:
+    for title in options.inputs:
+        query = {'q': None, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
+        writer = csv.writer('%s.csv' % title.replace('/', '__').replace(':', '__'))
+        writer.writerow(['# ' + title])
+        result = {'hits': {}, 'hits_all': 0}
         try:
             texts = []
             for revs in load_revisions(title):
@@ -108,6 +103,8 @@ if __name__ == '__main__':
                 for ((revPrev,timePrev), (revNext,timeNext)) in gen_prev_next([(x, x.getTimestamp()) for x in revs], (None, int(time.time()))):
 
                     query['q'] = ' '.join(['"%s"' % x for x in escape_variables(revPrev.getText())])
+                    if options.namespace:
+                        query['q'] += ' namespace:%s' % options.namespace
                     timePrev = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(timePrev))
                     timeNext = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(timeNext))
                     query['q'] += ' timestamp:[%s TO %s]' % (timePrev, timeNext)
@@ -126,8 +123,8 @@ if __name__ == '__main__':
 
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
-    result['hits'] = [[x, [[z] for z in y]] for (x,y) in result['hits'].items()]
-    query_func.format_result(writer, result, debug=options.debug)
+        result['hits'] = [[x, [[z] for z in y]] for (x,y) in result['hits'].items()]
+        query_func.format_result(writer, result, debug=options.debug)
 #<span class="plainlinks">[{{{2}}} this edit]</span> you made to [[:{{{1}}}]].  If you [[Wikipedia:Vandalism|vandalize]] Wikipedia again, you will be '''[[Wikipedia:Blocking policy|blocked from  editing]] without  further notice'''.  <!-- Template:uw-huggle4 --> ~~<noinclude></noinclude>~~_[[Image:Stop hand nuvola.svg|30px]] This is the '''final 
         # if options.namespace:
         #     querystr += ' namespace:' + options.namespace
