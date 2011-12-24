@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -69,7 +70,7 @@ public class DiffDocumentProducer implements Runnable {
   private final BlockingQueue<Document> prodq;
   private final BlockingQueue<Document> poolq;
   private final BufferedReader reader;
-	private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+	private final SimpleDateFormat formatter;
 	private final Filter filter;
 
   public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq, Filter filter) {
@@ -77,6 +78,8 @@ public class DiffDocumentProducer implements Runnable {
     this.poolq = poolq;
     this.reader = new BufferedReader(reader);
 		this.filter = filter;
+		this.formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		this.formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
   }
   public DiffDocumentProducer(Reader reader, BlockingQueue<Document> prodq, BlockingQueue<Document> poolq) {
 		this(reader, prodq, poolq, Filter.PASS_ALL);
