@@ -66,18 +66,18 @@ public class Indexer {
 							if ( docs < 0 ) {
 								break;
 							}
-							System.err.println("" + docs
-																		 + " documents have been indexed in "
-																		 + (System.currentTimeMillis() - start)
-																		 + " msecs (products " + prodq.size() + ")");
+							logger.info("" + docs
+													+ " documents have been indexed in "
+													+ (System.currentTimeMillis() - start)
+													+ " msecs (products " + prodq.size() + ")");
 							Thread.sleep(reportInterval);
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
 					} catch (InterruptedException e) {
-						System.err.println("Interrupted");
+						// do nothing
 					}
-					System.err.println("Finishing reporting");
+					logger.info("Finishing reporting");
 				}
 			}).start();
 
@@ -112,9 +112,9 @@ public class Indexer {
 			}
 			// Destroy consumers
 			this.consumerExecutor.shutdownNow();
-			System.out.println("Finished all threads");
+			logger.info("Finished all threads");
 			// this.writer.optimize();
-			System.out.println("Writing " + this.writer.numDocs() + " documents.");
+			logger.info("Writing " + this.writer.numDocs() + " documents.");
 		} finally {
 			synchronized (this) {
 				this.writer.close();
@@ -191,8 +191,8 @@ public class Indexer {
 			if ( indexer != null ) {
 				indexer.finish();
 			}
-			System.err.println("Finished in "
-					+ (System.currentTimeMillis() - start) + " msecs");
+			logger.info("Finished in "
+									+ (System.currentTimeMillis() - start) + " msecs");
 		}
 	}
 

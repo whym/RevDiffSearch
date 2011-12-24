@@ -141,7 +141,7 @@ public class DiffCollector extends Collector {
       String str = "";
       try {
         str = searcher.doc(doc).getFields().toString();
-        System.err.println(str);//!
+        logger.warning("unexpected set of fields: " + str);
       } catch (IOException ex) {
       }
       throw new RuntimeException(str, e);
