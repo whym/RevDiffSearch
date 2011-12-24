@@ -92,7 +92,7 @@ public class TestSearcherDaemon {
       assertEquals(1, json.getInt("hits_all"));
       assertEquals(233192,
                    json.getJSONArray("hits").getJSONArray(0).getInt(0));
-      assertEquals("2001-01-21T11:12:21Z",
+      assertEquals("2001-01-21T02:12:21Z",
                    json.getJSONArray("hits").getJSONArray(0).getString(1));
     }
   }
@@ -164,8 +164,8 @@ public class TestSearcherDaemon {
       JSONObject json = retrieve(address, q);
       assertEquals(2, json.getInt("hits_all"));
       System.err.println(json);//!
-      assertEquals("2002-02-26", json.getJSONArray("hits").getJSONArray(0).getString(0));
-      assertEquals("2002-02-27", json.getJSONArray("hits").getJSONArray(1).getString(0));
+      assertEquals("2002-02-25", json.getJSONArray("hits").getJSONArray(0).getString(0));
+      assertEquals("2002-02-26", json.getJSONArray("hits").getJSONArray(1).getString(0));
       assertEquals(18201,        json.getJSONArray("hits").getJSONArray(0).getJSONArray(1).getJSONArray(0).getInt(0));
       assertEquals(18210,        json.getJSONArray("hits").getJSONArray(1).getJSONArray(1).getJSONArray(0).getInt(0));
     }
@@ -177,8 +177,8 @@ public class TestSearcherDaemon {
       JSONObject json = retrieve(address, q);
       assertEquals(2, json.getInt("hits_all"));
       System.err.println(json);//!
-      assertEquals("2002-02-26", json.getJSONArray("hits").getJSONArray(0).getString(0));
-      assertEquals("2002-02-27", json.getJSONArray("hits").getJSONArray(1).getString(0));
+      assertEquals("2002-02-25", json.getJSONArray("hits").getJSONArray(0).getString(0));
+      assertEquals("2002-02-26", json.getJSONArray("hits").getJSONArray(1).getString(0));
       assertEquals(1,            json.getJSONArray("hits").getJSONArray(0).getInt(1));
       assertEquals(1,            json.getJSONArray("hits").getJSONArray(1).getInt(1));
     }
@@ -219,7 +219,7 @@ public class TestSearcherDaemon {
       assertEquals(1, json.getInt("hits_all"));
       assertEquals(233192,
                    json.getJSONArray("hits").getJSONArray(0).getInt(0));
-      assertEquals("2001-01-21T11:12:21Z",
+      assertEquals("2001-01-21T02:12:21Z",
                    json.getJSONArray("hits").getJSONArray(0).getString(1));
     }
   }
