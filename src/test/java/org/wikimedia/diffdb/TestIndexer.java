@@ -2,6 +2,7 @@ package org.wikimedia.diffdb;
 import org.junit.*;
 import java.io.*;
 import java.util.*;
+import java.util.logging.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.search.*;
@@ -48,6 +49,9 @@ public class TestIndexer {
     }
   }
 
+  @Before public void setup() {
+    Logger.getLogger(Indexer.class.getName()).setLevel(Level.WARNING);
+  }
 
   @Test public void smallDocuments() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();

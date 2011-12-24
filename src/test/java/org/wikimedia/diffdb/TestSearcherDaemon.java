@@ -2,6 +2,7 @@ package org.wikimedia.diffdb;
 import org.junit.*;
 import java.io.*;
 import java.util.*;
+import java.util.logging.*;
 import java.net.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.*;
@@ -55,6 +56,12 @@ public class TestSearcherDaemon {
     InetSocketAddress address = new InetSocketAddress(socket.getLocalPort());
     socket.close();
     return address;
+  }
+
+  @Before public void setup() {
+    Logger.getLogger(SearcherDaemon.class.getName()).setLevel(Level.WARNING);
+    Logger.getLogger(SearcherDaemon.SearcherHandler.class.getName()).setLevel(Level.WARNING);
+    Logger.getLogger(Indexer.class.getName()).setLevel(Level.WARNING);
   }
 
   @Test public void smallDocuments() throws IOException, JSONException, InterruptedException {
