@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# querying script for collecting revisions with a certain substituted template
+
 # this script requires
 # - wikimedia-utilities https://bitbucket.org/halfak/wikimedia-utilities
 # - linsuffarr http://jgosme.perso.info.unicaen.fr/Linsuffarr.html
@@ -83,6 +85,9 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose',
                         dest='verbose', action='store_true', default=False,
                         help='turn on verbose message output')
+    parser.add_argument('-H', '--hyperlink',
+                        dest='hyperlink', action='store_true', default=False,
+                        help='add hyperlinks to rev_ids')
     parser.add_argument('-d', '--debug',
                         dest='debug', action='store_true', default=False,
                         help='turn on debug output')
@@ -126,17 +131,8 @@ if __name__ == '__main__':
 
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
+
+    # rescore the structure of result
     result['hits'] = [[x, [[z] for z in y]] for (x,y) in result['hits'].items()]
-    query_func.format_result(writer, result, debug=options.debug)
-#<span class="plainlinks">[{{{2}}} this edit]</span> you made to [[:{{{1}}}]].  If you [[Wikipedia:Vandalism|vandalize]] Wikipedia again, you will be '''[[Wikipedia:Blocking policy|blocked from  editing]] without  further notice'''.  <!-- Template:uw-huggle4 --> ~~<noinclude></noinclude>~~_[[Image:Stop hand nuvola.svg|30px]] This is the '''final 
-        # if options.namespace:
-        #     querystr += ' namespace:' + options.namespace
-        # if options.verbose:
-        #     print >>sys.stderr, querystr
 
-        # result = query_func.search('localhost', 8080, query)
-        
-        # if options.verbose:
-        #     print >>sys.stderr, result
-
-        # query_func.format_result(writer, result, debug=options.debug)
+    query_func.format_result(writer, result, debug=options.debug, hyperlink=options.hyperlink)
