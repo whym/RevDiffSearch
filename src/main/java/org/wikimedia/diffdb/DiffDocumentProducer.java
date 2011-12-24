@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.logging.Logger;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -16,6 +17,7 @@ import org.apache.lucene.document.Field.Index;
 import org.apache.lucene.document.Field.Store;
 
 public class DiffDocumentProducer implements Runnable {
+	private static final Logger logger = Logger.getLogger(DiffDocumentProducer.class.getName());
   private static class Prop {
     // Note that fields which are not stored are not available in documents
     // retrieved from the index
@@ -137,7 +139,8 @@ public class DiffDocumentProducer implements Runnable {
           try {
             p = parseDiff(props[i]);
           } catch (Exception e) {
-            System.err.println(e + ": " + props[0] + ", " + props[i]);
+            logger.warning(e + ": " + props[0] + ", " + props[i]);
+						e.printStackTrace();
             continue;
           }
           ("-1".equals(p[1]) ? rbuff: abuff).append(p[0] + p[1] +p[2] + "\t");
@@ -160,8 +163,8 @@ public class DiffDocumentProducer implements Runnable {
         ((Field)doc.getFieldable("action")).setValue(action);
 
         if (props.length < propTypes.length) {
-          System.err.println("line " + linenumber
-                             + ": illegal line format");
+          logger.warning("line " + linenumber
+												 + ": illegal line format");
         }
 
         ++linenumber;
@@ -181,8 +184,10 @@ public class DiffDocumentProducer implements Runnable {
 
 	public static String parseString(String str) {
 		if ( str.charAt(0) == 'u' && str.charAt(1) == '\'' ) {
+			assert str.length() >= 4;
 			return str.substring(2, str.length() - 1);
 		} else if ( str.charAt(0) == '\'' ) {
+			assert str.length() >= 3;
 			return str.substring(1, str.length() - 1);
 		} else {
 			return str;
@@ -191,7 +196,9 @@ public class DiffDocumentProducer implements Runnable {
 
 	private static String[] parseDiff(String str) {
 		int i = str.indexOf(":");
+		assert i > 0  : "the first colon not found in '" + str + "'";
 		int j = str.indexOf(":", i+1);
+		assert j > 0  : "the second colon not found in '" + str + "'";
 		if ( j >= str.length() - 3 ) {
 			return new String[]{
 				str.substring(0,i),
