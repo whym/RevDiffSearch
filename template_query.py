@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# querying script for collecting revisions with a certain substituted template
+
 # this script requires
 # - wikimedia-utilities https://bitbucket.org/halfak/wikimedia-utilities
 # - linsuffarr http://jgosme.perso.info.unicaen.fr/Linsuffarr.html
@@ -21,7 +23,7 @@ import query as query_func
 from wmf.dump.iterator import Iterator
 
 pattern_void  = re.compile(r'(<noinclude>.*?</noinclude>)', flags=re.DOTALL|re.MULTILINE)
-pattern_split = re.compile(r"(\{\{[A-Z]+\}\}|\{\{#.*\}\}|\n|__[A-Z]+__|\n|\{\{\{\d\}\}\}|\{\{|\}\}|\#|~~~~|~~~|'|\")")
+pattern_split = re.compile(r"(\{\{[A-Z]+\}\}|\{\{#.*\}\}|\n|__[A-Z]+__|\n|\{\{\{\d\}\}\}|\{\{|\}\}|\#|<includeonly>|</includeonly>|~~~~|~~~|'|\")")
 
 def load_revisions(title):
     url  ='http://en.wikipedia.org/wiki/Special:Export/%s?history' % urllib2.quote(title)
@@ -80,6 +82,9 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose',
                         dest='verbose', action='store_true', default=False,
                         help='turn on verbose message output')
+    parser.add_argument('-H', '--hyperlink',
+                        dest='hyperlink', action='store_true', default=False,
+                        help='add hyperlinks to rev_ids')
     parser.add_argument('-d', '--debug',
                         dest='debug', action='store_true', default=False,
                         help='turn on debug output')
@@ -88,7 +93,7 @@ if __name__ == '__main__':
 
     for title in options.inputs:
         query = {'q': None, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
-        writer = csv.writer('%s.csv' % title.replace('/', '__').replace(':', '__'))
+        writer = csv.writer(open('%s.csv' % title.replace('/', '__').replace(':', '__'), 'w'))
         writer.writerow(['# ' + title])
         result = {'hits': {}, 'hits_all': 0}
         try:
@@ -123,17 +128,9 @@ if __name__ == '__main__':
 
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
-        result['hits'] = [[x, [[z] for z in y]] for (x,y) in result['hits'].items()]
+        # restore the structure of result
+        if options.revisions:
+            result['hits'] = [[x, [[z] for z in y]] for (x,y) in result['hits'].items()]
+        else:
+            result['hits'] =  result['hits'].items()
         query_func.format_result(writer, result, debug=options.debug)
-#<span class="plainlinks">[{{{2}}} this edit]</span> you made to [[:{{{1}}}]].  If you [[Wikipedia:Vandalism|vandalize]] Wikipedia again, you will be '''[[Wikipedia:Blocking policy|blocked from  editing]] without  further notice'''.  <!-- Template:uw-huggle4 --> ~~<noinclude></noinclude>~~_[[Image:Stop hand nuvola.svg|30px]] This is the '''final 
-        # if options.namespace:
-        #     querystr += ' namespace:' + options.namespace
-        # if options.verbose:
-        #     print >>sys.stderr, querystr
-
-        # result = query_func.search('localhost', 8080, query)
-        
-        # if options.verbose:
-        #     print >>sys.stderr, result
-
-        # query_func.format_result(writer, result, debug=options.debug)

@@ -22,12 +22,15 @@ def search(host, port, query):
     s.close()
     return json.loads(result)
 
-def format_result(writer, result, debug):
-    for (date,res) in result['hits']:
+def format_result(writer, result, debug, hyperlink=False):
+    for (date,res) in sorted(result['hits'], key=lambda x: x[0]):
         cols = [date]
         if type(res) == list:
             cols.append(len(res))
-            cols += ['=HYPERLINK("http://enwp.org/?diff=%s","%s")' % (x[0],x[0]) for x in res] # assuming having received a list of rev ids
+            if hyperlink:
+                cols.append(';'.join(['=HYPERLINK("http://enwp.org/?diff=%s","%s")' % (x[0],x[0]) for x in res])) # assuming having received a list of rev ids
+            else:
+                cols.append(';'.join([x[0] for x in res]))
         else:
             cols.append(res)
         writer.writerow(cols)
@@ -72,6 +75,9 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--debug',
                         dest='debug', action='store_true', default=False,
                         help='turn on debug output')
+    parser.add_argument('-H', '--hyperlink',
+                        dest='hyperlink', action='store_true', default=False,
+                        help='add hyperlinks to rev_ids')
     parser.add_argument('-a', '--advanced',
                         dest='advanced', action='store_true', default=False,
                         help='turn on advanced query format')
@@ -99,4 +105,4 @@ if __name__ == '__main__':
         print >>sys.stderr, result
 
     writer = csv.writer(options.output)
-    format_result(writer, result, debug=options.debug)
+    format_result(writer, result, debug=options.debug, hyperlink=options.hyperlink)
