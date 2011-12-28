@@ -102,7 +102,6 @@ public class SearcherDaemon implements Runnable {
 	}
 
   public static class SearcherHandler extends SimpleChannelUpstreamHandler {
-    private static final Logger logger = Logger.getLogger(SearcherHandler.class.getName());
     private final IndexSearcher searcher;
     private final QueryParser parser;
 

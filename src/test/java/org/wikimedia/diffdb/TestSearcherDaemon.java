@@ -61,7 +61,6 @@ public class TestSearcherDaemon {
 
   @Before public void setup() {
     Logger.getLogger(SearcherDaemon.class.getName()).setLevel(Level.WARNING);
-    Logger.getLogger(SearcherDaemon.SearcherHandler.class.getName()).setLevel(Level.WARNING);
     Logger.getLogger(Indexer.class.getName()).setLevel(Level.WARNING);
   }
 
