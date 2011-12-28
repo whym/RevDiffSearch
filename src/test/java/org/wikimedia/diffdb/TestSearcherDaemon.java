@@ -41,6 +41,7 @@ public class TestSearcherDaemon {
     Socket socket = new Socket(address.getAddress(), address.getPort());
     BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
     writer.write(query.toString());
+    writer.write("\n");
     writer.flush();
     socket.shutdownOutput();
     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -60,7 +61,6 @@ public class TestSearcherDaemon {
 
   @Before public void setup() {
     Logger.getLogger(SearcherDaemon.class.getName()).setLevel(Level.WARNING);
-    Logger.getLogger(SearcherDaemon.SearcherHandler.class.getName()).setLevel(Level.WARNING);
     Logger.getLogger(Indexer.class.getName()).setLevel(Level.WARNING);
   }
 

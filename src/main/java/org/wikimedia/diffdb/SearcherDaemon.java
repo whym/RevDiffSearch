@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,11 +29,14 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.queryParser.ParseException;
 
+import org.jboss.netty.util.CharsetUtil;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -45,6 +47,8 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.string.StringDecoder;
 import org.jboss.netty.handler.codec.string.StringEncoder;
+import org.jboss.netty.handler.codec.frame.DelimiterBasedFrameDecoder;
+import org.jboss.netty.handler.codec.frame.Delimiters;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -75,7 +79,7 @@ public class SearcherDaemon implements Runnable {
 		this.startTimeMillis = System.currentTimeMillis();
 	}
 	
-	public void run() {
+	@Override public void run() {
     ServerBootstrap bootstrap = new ServerBootstrap
       (new NioServerSocketChannelFactory
        (Executors.newCachedThreadPool(),
@@ -84,12 +88,11 @@ public class SearcherDaemon implements Runnable {
     bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
         @Override
           public ChannelPipeline getPipeline() throws Exception {
-          ChannelPipeline pipeline = Channels.pipeline(new SearcherHandler(searcher, parser));
-          Charset charset = Charset.forName("UTF-8");
-					
-					pipeline.addLast("decoder", new StringEncoder());
-					pipeline.addLast("encoder", new StringDecoder());
-
+          ChannelPipeline pipeline = Channels.pipeline();
+					pipeline.addLast("framer", new DelimiterBasedFrameDecoder(100000, Delimiters.lineDelimiter()));
+					pipeline.addLast("decoder", new StringEncoder(CharsetUtil.UTF_8));
+					pipeline.addLast("encoder", new StringDecoder(CharsetUtil.UTF_8));
+					pipeline.addLast("handler", new SearcherHandler(searcher, parser));
           return pipeline;
         }
       });
@@ -99,7 +102,6 @@ public class SearcherDaemon implements Runnable {
 	}
 
   public static class SearcherHandler extends SimpleChannelUpstreamHandler {
-    private static final Logger logger = Logger.getLogger(SearcherHandler.class.getName());
     private final IndexSearcher searcher;
     private final QueryParser parser;
 
@@ -107,6 +109,14 @@ public class SearcherDaemon implements Runnable {
       this.searcher = searcher;
       this.parser = parser;
     }
+
+
+		@Override	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+			if (e instanceof ChannelStateEvent) {
+				logger.info(e.toString());
+			}
+			super.handleUpstream(ctx, e);
+		}
 
 		private JSONArray writeCollapsedHitsByTimestamp(BitSet hits, List<String> fields, Pattern pattern) throws IOException, JSONException {
 			Map<String, JSONArray> map = new TreeMap<String, JSONArray>();
@@ -155,7 +165,7 @@ public class SearcherDaemon implements Runnable {
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
 			long processingStartMillis = System.currentTimeMillis();
 			try {
-				String qstr = ((ChannelBuffer)e.getMessage()).toString(Charset.defaultCharset());
+				String qstr = (String)e.getMessage();
 				logger.info("received query: " + qstr + " at " + ctx);
 				JSONObject qobj = new JSONObject(qstr);
 				logger.info("received query (JSON): " + qobj.toString(2) + " at " + ctx);
