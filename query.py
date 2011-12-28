@@ -9,7 +9,7 @@ import socket
 import csv
 
 def search(host, port, query):
-    query = json.dumps(query)
+    query = json.dumps(query) + "\n"
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     s.send(query)
