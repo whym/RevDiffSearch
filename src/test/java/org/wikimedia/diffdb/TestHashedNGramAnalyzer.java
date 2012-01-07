@@ -15,6 +15,7 @@ import org.apache.lucene.store.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.document.*;
 import org.apache.lucene.util.Version;
+import org.apache.commons.codec.binary.Base64;
 
 import static org.junit.Assert.*;
 
@@ -22,16 +23,31 @@ public class TestHashedNGramAnalyzer {
   private static int hash(String s, int seed) {
     return MurmurHash.hash32(s.getBytes(), s.getBytes().length, seed);
   }
+
+  private static int decodeInteger(String enc) {
+    int x = 0;
+    int scale = 1;
+    for ( byte b: Base64.decodeBase64(enc + "==") ) {
+      x += scale * (0xFF & b);
+      scale = scale << 8;
+    }
+    return x;
+  }
+
+
   @Test public void shortString() throws IOException {
     TokenStream ts = new HashedNGramAnalyzer(3,4,11).tokenStream("title", new StringReader("cadabra"));
     OffsetAttribute offset = (OffsetAttribute) ts.addAttribute(OffsetAttribute.class);
     CharTermAttribute terma = (CharTermAttribute) ts.addAttribute(CharTermAttribute.class);
     NGramHashAttribute hasha = (NGramHashAttribute)ts.addAttribute(NGramHashAttribute.class);
     List<Integer> hashes = new ArrayList<Integer>();
+    List<Integer> hashes2 = new ArrayList<Integer>();
     while (ts.incrementToken()) {
       hashes.add(hasha.getValue());
+      hashes2.add(decodeInteger(terma.toString()));
     }
     // assertEquals(Arrays.asList(new Integer[]{hash("cad", 11), hash("ada", 11), hash("dab", 11), hash("abr", 11), hash("bra", 11), hash("cada", 11), hash("adab", 11), hash("dabr", 11), hash("abra", 11)}), hashes); // TODO: NGramHashAttribute didn't work as index token in search; disabled until we find a better way to embed the hash value
+    assertEquals(Arrays.asList(new Integer[]{hash("cad", 11), hash("ada", 11), hash("dab", 11), hash("abr", 11), hash("bra", 11), hash("cada", 11), hash("adab", 11), hash("dabr", 11), hash("abra", 11)}), hashes2);
   }
 
   @Test public void createDcument() throws IOException, ParseException {
