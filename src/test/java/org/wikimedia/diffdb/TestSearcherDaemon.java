@@ -90,10 +90,10 @@ public class TestSearcherDaemon {
       assertEquals(1, json.getInt("hits_all"));
       assertEquals(18201, json.getJSONArray("hits").getJSONArray(0).getInt(0));
     }
-    // query "Accessible" and receive rev_ids and timestamps
+    // query "* Legal" and receive rev_ids and timestamps
     {
       JSONObject q = new JSONObject();
-      q.put("q", "Accessible");
+      q.put("q", "\"* Legal\"");
       q.put("fields", new JSONArray(new String[]{"rev_id", "timestamp"}));
       JSONObject json = retrieve(address, q);
       assertEquals(1, json.getInt("hits_all"));
@@ -217,10 +217,10 @@ public class TestSearcherDaemon {
       assertEquals(1, json.getInt("hits_all"));
       assertEquals(18201, json.getJSONArray("hits").getJSONArray(0).getInt(0));
     }
-    // query "Accessible" and receive rev_ids and timestamps
+    // query "* Legal" and receive rev_ids and timestamps
     {
       JSONObject q = new JSONObject();
-      q.put("q", "Accessible");
+      q.put("q", "\"* Legal\"");
       q.put("fields", new JSONArray(new String[]{"rev_id", "timestamp"}));
       JSONObject json = retrieve(address, q);
       assertEquals(1, json.getInt("hits_all"));
@@ -275,7 +275,7 @@ public class TestSearcherDaemon {
                                          new IndexWriterConfig(Version.LUCENE_35,
                                                                new NGramAnalyzer(1, 2)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
-    indexer.indexDocuments(newTempFile("233192	10	0	'Title1'	980043141	u'comment1'	False	99	u'uname1'	0:1:u' subject cover \n'q" +
+    indexer.indexDocuments(newTempFile("233192	10	0	'Title1'	980043141	u'comment1'	False	99	u'uname1'	0:1:u' \"subject cover\" \n'q" +
                                        "18201	12	0	'Title2'	1014649222	u'comment2'	True	None	u'uname2'	9230:1:u'This covers subject to'\n"));
     indexer.finish();
 
