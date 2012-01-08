@@ -34,6 +34,12 @@ public class TestHashedNGramAnalyzer {
     return x;
   }
 
+  private static Document newDocument(String field, String value) {
+    Document doc = new Document();
+    doc.add(new Field(field, value, Field.Store.YES, Field.Index.ANALYZED));
+    return doc;
+  }
+
 
   @Test public void shortString() throws IOException {
     TokenStream ts = new HashedNGramAnalyzer(3,4,11).tokenStream("title", new StringReader("cadabra"));
@@ -50,14 +56,34 @@ public class TestHashedNGramAnalyzer {
     assertEquals(Arrays.asList(new Integer[]{hash("cad", 11), hash("ada", 11), hash("dab", 11), hash("abr", 11), hash("bra", 11), hash("cada", 11), hash("adab", 11), hash("dabr", 11), hash("abra", 11)}), hashes2);
   }
 
-  @Test public void createDcument() throws IOException, ParseException {
+  @Test public void createDcumentAndExtractTerms() throws IOException, ParseException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
                                          new IndexWriterConfig(Version.LUCENE_35,
                                                                new HashedNGramAnalyzer(3, 4, 1234)));
-    Document doc = new Document();
-    doc.add(new Field("title", "help", Field.Store.YES, Field.Index.ANALYZED));
-    writer.addDocument(doc);
+    writer.addDocument(newDocument("title", "help"));
+    writer.commit();
+    writer.optimize();
+    writer.close();
+    IndexReader reader = IndexReader.open(dir);
+    assertEquals(1, reader.maxDoc());
+    TermEnum terms = reader.terms();
+    Set<Integer> observed = new HashSet<Integer>();
+    while ( terms.next()) {
+      observed.add(decodeInteger(terms.term().text()));
+    }
+    assertEquals(new HashSet<Integer>(Arrays.asList(new Integer[]{hash("hel", 1234), 
+                                                                  hash("elp", 1234),
+                                                                  hash("help", 1234),
+          })), observed);
+  }
+
+  @Test public void createDcumentAndSearch() throws IOException, ParseException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_35,
+                                                               new HashedNGramAnalyzer(3, 4, 1234)));
+    writer.addDocument(newDocument("title", "help"));
     writer.commit();
     writer.optimize();
     writer.close();
@@ -87,10 +113,54 @@ public class TestHashedNGramAnalyzer {
       });
     assertEquals(0, hit[0]);
   }
-  // @Test public void search() throws IOException, ParseException {
-  //   Query parser = new QueryParser(Version.LUCENE_35, "added", new HashedNGramAnalyzer(3, 3, 11));
-  //   assertEquals("test", parser.parse("help"));
-  // }
+
+  @Test public void createDcumentAndSearchPhrase() throws IOException, ParseException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_35,
+                                                               new HashedNGramAnalyzer(3, 5, 1234)));
+    System.err.println("doc 0");
+    writer.addDocument(newDocument("title", "help page 1"));
+    System.err.println("doc 1");
+    writer.addDocument(newDocument("title", "help page 2"));
+    System.err.println("doc 2");
+    writer.addDocument(newDocument("title", "help page"));
+    System.err.println("doc 3");
+    writer.addDocument(newDocument("title", "page 1"));
+    System.err.println("doc 4");
+    writer.addDocument(newDocument("title", "help"));
+    System.err.println("doc 5");
+    writer.commit();
+    writer.optimize();
+    writer.close();
+    IndexReader reader = IndexReader.open(dir);
+    IndexSearcher searcher = new IndexSearcher(reader);
+    System.err.println("query");
+    QueryParser parser = new QueryParser(Version.LUCENE_35, "title", new HashedNGramAnalyzer(3, 5, 1234));
+    parser.setDefaultOperator(QueryParser.AND_OPERATOR);
+    Query query = parser.parse("\"help page\"~2");
+    final Set<Integer> hits = new HashSet<Integer>();
+    searcher.search(query, new Collector() {
+        private int docBase;
+        
+        // ignore scorer
+        public void setScorer(Scorer scorer) {
+        }
+        
+        public boolean acceptsDocsOutOfOrder() {
+          return true;
+        }
+        
+        public void collect(int doc) {
+          hits.add(doc);
+        }
+        
+        public void setNextReader(IndexReader reader, int docBase) {
+          this.docBase = docBase;
+        }
+      });
+    assertEquals(3, hits.size());
+  }
 }
 
 /*
