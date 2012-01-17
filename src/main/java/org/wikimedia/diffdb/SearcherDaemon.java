@@ -77,6 +77,7 @@ public class SearcherDaemon implements Runnable {
 		this.parser = parser;
 		this.parser.setDefaultOperator(QueryParser.AND_OPERATOR);
 		this.startTimeMillis = System.currentTimeMillis();
+		logger.info("given the index containing " + searcher.maxDoc() + " entries");
 	}
 	
 	@Override public void run() {
@@ -102,7 +103,6 @@ public class SearcherDaemon implements Runnable {
 	}
 
   public static class SearcherHandler extends SimpleChannelUpstreamHandler {
-    private static final Logger logger = Logger.getLogger(SearcherHandler.class.getName());
     private final IndexSearcher searcher;
     private final QueryParser parser;
 
