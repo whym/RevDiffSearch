@@ -53,7 +53,7 @@ public class TestHashedNGramAnalyzer {
       hashes2.add(decodeInteger(terma.toString()));
     }
     // assertEquals(Arrays.asList(new Integer[]{hash("cad", 11), hash("ada", 11), hash("dab", 11), hash("abr", 11), hash("bra", 11), hash("cada", 11), hash("adab", 11), hash("dabr", 11), hash("abra", 11)}), hashes); // TODO: NGramHashAttribute didn't work as index token in search; disabled until we find a better way to embed the hash value
-    assertEquals(Arrays.asList(new Integer[]{hash("cad", 11), hash("ada", 11), hash("dab", 11), hash("abr", 11), hash("bra", 11), hash("cada", 11), hash("adab", 11), hash("dabr", 11), hash("abra", 11)}), hashes2);
+    assertEquals(Arrays.asList(new Integer[]{hash("cad", 11), hash("cada", 11), hash("ada", 11), hash("adab", 11), hash("dab", 11), hash("dabr", 11), hash("abr", 11), hash("abra", 11), hash("bra", 11)}), hashes2);
   }
 
   @Test public void createDcumentAndExtractTerms() throws IOException, ParseException {
