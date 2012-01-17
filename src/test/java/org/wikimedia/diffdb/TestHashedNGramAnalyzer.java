@@ -40,6 +40,19 @@ public class TestHashedNGramAnalyzer {
     return doc;
   }
 
+  @Test public void stringShorterThanMaxN() throws IOException {
+    TokenStream ts = new HashedNGramAnalyzer(1,5,11).tokenStream("title", new StringReader("test"));
+    OffsetAttribute offset = (OffsetAttribute) ts.addAttribute(OffsetAttribute.class);
+    CharTermAttribute terma = (CharTermAttribute) ts.addAttribute(CharTermAttribute.class);
+    NGramHashAttribute hasha = (NGramHashAttribute)ts.addAttribute(NGramHashAttribute.class);
+    List<Integer> hashes = new ArrayList<Integer>();
+    List<Integer> hashes2 = new ArrayList<Integer>();
+    while (ts.incrementToken()) {
+      hashes.add(hasha.getValue());
+      hashes2.add(decodeInteger(terma.toString()));
+    }
+    assertEquals(Arrays.asList(new Integer[]{hash("t", 11), hash("te", 11), hash("tes", 11), hash("test", 11)}), hashes2);
+  }
 
   @Test public void shortString() throws IOException {
     TokenStream ts = new HashedNGramAnalyzer(3,4,11).tokenStream("title", new StringReader("cadabra"));
@@ -119,17 +132,11 @@ public class TestHashedNGramAnalyzer {
     IndexWriter writer = new IndexWriter(dir,
                                          new IndexWriterConfig(Version.LUCENE_35,
                                                                new HashedNGramAnalyzer(3, 5, 1234)));
-    System.err.println("doc 0");
     writer.addDocument(newDocument("title", "help page 1"));
-    System.err.println("doc 1");
     writer.addDocument(newDocument("title", "help page 2"));
-    System.err.println("doc 2");
     writer.addDocument(newDocument("title", "help page"));
-    System.err.println("doc 3");
     writer.addDocument(newDocument("title", "page 1"));
-    System.err.println("doc 4");
     writer.addDocument(newDocument("title", "help"));
-    System.err.println("doc 5");
     writer.commit();
     writer.optimize();
     writer.close();
