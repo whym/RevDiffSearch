@@ -21,6 +21,11 @@ public class TestDiffCollector {
     expect.put("added", Collections.singleton("help"));
     assertEquals(expect, DiffCollector.getQueryFields("added:help added:hel"));
   }
+  @Test public void testGetQueryFieldsWithQuotedValues() {
+    Map<String,Set<String>> expect = new HashMap<String,Set<String>>();
+    expect.put("added", Collections.singleton("help me"));
+    assertEquals(expect, DiffCollector.getQueryFields("\"help me\""));
+  }
 }
 
 /*

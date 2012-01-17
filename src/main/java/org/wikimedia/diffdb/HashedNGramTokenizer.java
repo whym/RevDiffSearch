@@ -127,21 +127,20 @@ public final class HashedNGramTokenizer extends Tokenizer {
     }
 
     if (this.pos+this.gramSize > this.inLen) {            // if we hit the end of the string
-      this.pos = 0;                           // reset to beginning of string
-      this.gramSize++;                        // increase n-gram size
-      if (this.gramSize > this.maxGram)            // we are done
-        return false;
-      if (this.pos+this.gramSize > this.inLen)
-        return false;
+      return false;
     }
 
     int oldPos = pos;
-    pos++;
     int hash = this.hashString(this.inStr.substring(oldPos, oldPos+this.gramSize));
     //this.hashAtt.setValue(hash);  // TODO: NGramHashAttribute didn't work as index token in search; disabled until we find a better way to embed the hash value
     char[] str = this.encodeIntegerAsString(hash).toCharArray();
     this.termAtt.copyBuffer(str, 0, str.length); // for now we embed integers as Base64 encoded strings
     this.offsetAtt.setOffset(this.correctOffset(oldPos), this.correctOffset(oldPos+gramSize));
+    this.gramSize++;
+    if (this.gramSize > this.maxGram) {
+      this.pos++;
+      this.gramSize = this.minGram;
+    }
     return true;
   }
 
