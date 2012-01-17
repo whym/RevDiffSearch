@@ -2,8 +2,10 @@ package org.wikimedia.diffdb;
 
 import java.util.Properties;
 import org.apache.lucene.analysis.Analyzer;
+import java.util.logging.Logger;
 
 public class DiffDbUtils {
+	private static final Logger logger = Logger.getLogger(DiffDbUtils.class.getName());
   private static Properties prop;
   static {
     try {
@@ -55,10 +57,13 @@ public class DiffDbUtils {
     int m = getProperty("ngram_max", 0);
     int n = getProperty("ngram", 3);
     if ( m != 0 && n != 0 && seed >= 0) {
+			logger.info(String.format("using HashedNGramAnalyzer(%d, %d, %d)", n, m, seed));
       return new HashedNGramAnalyzer(n, m, seed);
     } else if ( m != 0 && n != 0 ) {
+			logger.info(String.format("using NGramAnalyzer(%d, %d)", n, m));
 			return new NGramAnalyzer(n, m);
 		} else {
+			logger.info(String.format("using SimpleNGramAnalyzer(%d)", n));
 			return new SimpleNGramAnalyzer(n);
 		}
   }
