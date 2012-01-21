@@ -22,6 +22,20 @@ def search(host, port, query):
     s.close()
     return json.loads(result)
 
+def format_query(querystr, options):
+    if not options.start and options.end:
+        options.start = '0'     # some value lexicographically lesser than any year
+    if options.start and not options.end:
+        options.end = 'Z'       # some value lexicographically greater than any year
+    if options.start and options.end:
+        querystr += ' timestamp:[%s TO %s]' % (options.start, options.end)
+    if not options.advanced:
+        querystr = '"%s"' % querystr.replace('"', '\\"')
+    if options.namespace:
+        querystr += ' namespace:' + options.namespace
+
+    return {'q': querystr, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
+
 def format_result(writer, result, debug, hyperlink=False):
     for (date,res) in sorted(result['hits'], key=lambda x: x[0]):
         cols = [date]
@@ -42,6 +56,18 @@ def format_result(writer, result, debug, hyperlink=False):
             writer.writerow(['# 1st-pass precision: %f' % (result['hits_all'] / checked)])
         writer.writerow(['# unchecked: %d' % result['debug_unchecked']])
 
+def load_queries(fname):
+    queries = {}
+    reader = csv.reader(open(fname))
+
+    for ls in list(reader):
+        q = ls[0]
+        f = q.replace(':', '__').replace('!', '__').replace('<', '__').replace('>', '__')
+        f += '.txt'
+        if len(ls) >= 2:
+            f = ls[1]
+        queries[f] = q
+    return queries
 
 if __name__ == '__main__':
 
@@ -78,31 +104,33 @@ if __name__ == '__main__':
     parser.add_argument('-H', '--hyperlink',
                         dest='hyperlink', action='store_true', default=False,
                         help='add hyperlinks to rev_ids')
+    parser.add_argument('-q', '--query-file', metavar='FILE',
+                        dest='queryfile', type=str, default=None,
+                        help='load queries and output file names from a file')
     parser.add_argument('-a', '--advanced',
                         dest='advanced', action='store_true', default=False,
                         help='turn on advanced query format')
-    parser.add_argument('inputs', nargs='+')
+    parser.add_argument('inputs', nargs='*')
     options = parser.parse_args()
-    querystr = ' '.join(options.inputs)
+    queries = {options.output: ' '.join(options.inputs)}
+    if options.queryfile:
+        queries = load_queries(options.queryfile)
+    if len(queries.items()) == 0:
+        print >>sys.stderr, 'no query'
+        exit(1)
 
     if options.verbose:
-        print >>sys.stderr, querystr
+        print >>sys.stderr, queries
 
-    if not options.start and options.end:
-        options.start = '0'     # some value lexicographically lesser than any year
-    if options.start and not options.end:
-        options.end = 'Z'       # some value lexicographically greater than any year
-    if options.start and options.end:
-        querystr += ' timestamp:[%s TO %s]' % (options.start, options.end)
-    if not options.advanced:
-        querystr = '"%s"' % querystr.replace('"', '\\"')
-    query = {'q': querystr, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
-    result = search('localhost', 8080, query)
-    if options.namespace:
-        querystr += ' namespace:' + options.namespace
+    for (output, query) in queries.items():
+        result = search('localhost', 8080, format_query(query, options))
 
-    if options.verbose:
-        print >>sys.stderr, result
+        if options.verbose:
+            print >>sys.stderr, result
 
-    writer = csv.writer(options.output)
-    format_result(writer, result, debug=options.debug, hyperlink=options.hyperlink)
+        if type(output) == str:
+            output = open(output, 'w')
+        writer = csv.writer(output)
+        if options.debug:
+            writer.writerow(['# query: %s, options: %s', query, repr(options)])
+        format_result(writer, result, debug=options.debug, hyperlink=options.hyperlink)
