@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: org.wikimedia.diffdb.Searcher
+Main-Class: org.wikimedia.revdiffsearch.Searcher
 

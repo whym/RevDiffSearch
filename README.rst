@@ -7,13 +7,13 @@ Purpose
 
 *Search* is one of the most useful means to look into a huge amount of text data.  When we deal with hundreds of millions of revisions in Wikipedia, we want to find an answer to questions like ''when did this template start to be popular in this wiki?'' and `a lot more`_.  However, it is almost impossible without a search capability over revision diffs.  `WikiHadoop` is a tool to create a database of the differences between two revisions for Wikipedia articles. While knowing who adds / removes certain content is very useful it is still cumbersome to search through the data.
 
-Hence, we developed a Lucene indexer that takes as input the diffdb created by Wikihadoop and creates an index that is searachable using Lucene.
+Hence, we developed a Lucene indexer that takes as input the revdiffsearch created by Wikihadoop and creates an index that is searachable using Lucene.
 This indexer assumes the input files to be formatted as explained in [#]_.
 
 **Note that this software is under-development.**  Most parts are not well documented and the architecture frequently changes.  Any feedback will be welcomed at Issues_.
 
 .. _WikiHadoop: https://github.com/whym/wikihadoop
-.. _Issues: https://github.com/whym/diffindexer/issues
+.. _Issues: https://github.com/whym/RevDiffSearch/issues
 .. _a lot more: http://meta.wikimedia.org/wiki/Research:MDM_-_The_Magical_Difference_Machine
 .. [#] http://meta.wikimedia.org/wiki/WSoR_datasets/revision_diff
 
@@ -23,11 +23,11 @@ We use `Apache Maven`_ to compile this software in to a jar file.  The jar file 
 
 You invoke the indexer on the command line using the following command [#]_: ::
 
- CLASSPATH=$CLASSPATH:target/diffdb-0.1.jar java org.wikimedia.diffdb.Indexer ~/diffdbtest/index ~/diffdbtest/data/diffs
+ CLASSPATH=$CLASSPATH:target/revdiffsearch-0.1.jar java org.wikimedia.revdiffsearch.Indexer ~/diffdbtest/index ~/diffdbtest/data/diffs
 
 then the searcher daemon with the following command: ::
 
- CLASSPATH=$CLASSPATH:target/diffdb-0.1.jar java org.wikimedia.diffdb.SearcherDaemon -index ~/diffdbtest/index
+ CLASSPATH=$CLASSPATH:target/revdiffsearch-0.1.jar java org.wikimedia.revdiffsearch.SearcherDaemon -index ~/diffdbtest/index
 
 and then you can issue a query with an accompanying script to see which revisions are matched and when they are dated: ::
 

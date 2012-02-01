@@ -2,7 +2,7 @@ This package contains derivative versions of the following programs,
 distributed under the licenses shown below respectively.
 
 -----------
-src/java/org/wikimedia/diffdb/IndexMerger.java
+src/java/org/wikimedia/revdiffsearch/IndexMerger.java
 
 Author: Asterios Katsifodimos (http://www.asteriosk.gr)
 Source: http://blog.asteriosk.gr/2009/03/31/merging-multiple-lucene-indexes/
@@ -21,7 +21,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 -----------
-src/java/org/wikimedia/diffdb/Searcher.java
+src/java/org/wikimedia/revdiffsearch/Searcher.java
 
 Source: https://svn.apache.org/repos/asf/lucene/dev/trunk/lucene/contrib/demo/src/java/org/apache/lucene/demo/SearchFiles.java
 
@@ -40,7 +40,7 @@ Source: https://svn.apache.org/repos/asf/lucene/dev/trunk/lucene/contrib/demo/sr
  limitations under the License.
 
 ------------
-src/java/org/wikimedia/diffdb/HashedNGramTokenizer.java
+src/java/org/wikimedia/revdiffsearch/HashedNGramTokenizer.java
 
 Source: https://svn.apache.org/repos/asf/lucene/dev/trunk/modules/analysis/common/src/java/org/apache/lucene/analysis/ngram/NGramTokenizer.java
 
