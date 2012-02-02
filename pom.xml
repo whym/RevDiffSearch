@@ -4,11 +4,11 @@
   <modelVersion>4.0.0</modelVersion>
   
   <groupId>org.wikimedia</groupId>
-  <artifactId>diffdb</artifactId>
+  <artifactId>revdiffsearch</artifactId>
   <version>0.1</version>
   <packaging>jar</packaging>
-  <name>diffdb</name>
-  <url>http://github.com/whym/diffdb</url>
+  <name>revdiffsearch</name>
+  <url>http://github.com/whym/revdiffsearch</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -116,7 +116,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>org.wikimedia.diffdb.Indexer</mainClass>
+              <mainClass>org.wikimedia.revdiffsearch.Indexer</mainClass>
             </manifest>
           </archive>
           <excludes>
