@@ -1,5 +1,5 @@
 ==========================
-RevDiwikiffSearch
+RevDiffSearch
 ==========================
 -----------------------------------------------------------
 Lucene indexer & searcher of revision diffs for WikiHadoop
