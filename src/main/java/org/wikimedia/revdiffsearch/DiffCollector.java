@@ -46,13 +46,15 @@ public class DiffCollector extends Collector {
   private int maxRevs;
   private int positives;
   private int skipped;
+  private boolean ensure;
   
-  public DiffCollector(IndexSearcher searcher, String query, int max) {
+  public DiffCollector(IndexSearcher searcher, String query, int max, boolean ensure) {
     this.searcher = searcher;
     this.hits = new BitSet(searcher.getIndexReader().maxDoc());
     this.maxRevs = max;
     this.positives = 0;
     this.skipped = 0;
+    this.ensure = ensure;
     this.queryFields = getQueryFields(query);
   }
   public static Map<String,Set<String>> getQueryFields(final String query) {
@@ -114,23 +116,25 @@ public class DiffCollector extends Collector {
   public int skipped() {
     return this.skipped;
   }
-  
+
   public void collect(int doc) {
     doc += this.docBase;
     ++this.positives;
-    // TODO: it must work for other fileds than 'added' and 'removed'
+
     if ( this.hits.cardinality() >= this.maxRevs ) {
       ++this.skipped;
       this.hits.clear(doc);
       return;
-    }					
+    }
     try {
-      for ( Map.Entry<String,Set<String>> ent: this.queryFields.entrySet() ) {
-        String str = searcher.doc(doc).getField(ent.getKey()).stringValue();
-        for ( String val: ent.getValue() ) {
-          if ( str.indexOf(val) < 0 ) {
+      if ( this.ensure ) {
+        for ( Map.Entry<String,Set<String>> ent: this.queryFields.entrySet() ) {
+          String str = searcher.doc(doc).getField(ent.getKey()).stringValue();
+          for ( String val: ent.getValue() ) {
+            if ( str.indexOf(val) < 0 ) {
             this.hits.clear(doc);
             return;
+            }
           }
         }
       }
