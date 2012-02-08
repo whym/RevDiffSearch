@@ -34,9 +34,10 @@ public class Indexer {
 	private final long start;
 	private final DiffDocumentProducer.Filter filter;
 	private final double consumerRatio;
+	private final boolean overwrite;
 	private boolean finished;
 	
-	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration, DiffDocumentProducer.Filter filter) {
+	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration, boolean overwrite, DiffDocumentProducer.Filter filter) {
 		if ( nthreads <= 1 ) {
 			throw new IllegalArgumentException("number of threads must be at least 2");
 		}
@@ -51,6 +52,7 @@ public class Indexer {
 		this.prodq = new ArrayBlockingQueue<Document>(poolsize);
 		this.poolq = new ArrayBlockingQueue<Document>(poolsize);
 		this.filter = filter;
+		this.overwrite = overwrite;
 		// run a thread that reports the progress periodically
 		final Object this_ = this;
 		new Thread(new Runnable() {
@@ -86,11 +88,14 @@ public class Indexer {
 			this.poolq.add(DiffDocumentProducer.createEmptyDocument());
 		}
 		for ( int i = 0; i < nconsumers; ++i ) {
-			this.consumerExecutor.execute(new DiffDocumentConsumer(this.writer, this.prodq, this.poolq));
+			this.consumerExecutor.execute(new DiffDocumentConsumer(this.writer, this.prodq, this.poolq, this.overwrite));
 		}
 	}
+	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration, boolean overwrite) {
+		this(writer, nthreads, poolsize, duration, overwrite, DiffDocumentProducer.Filter.PASS_ALL);
+	}
 	public Indexer(final IndexWriter writer, int nthreads, int poolsize, long duration) {
-		this(writer, nthreads, poolsize, duration, DiffDocumentProducer.Filter.PASS_ALL);
+		this(writer, nthreads, poolsize, duration, true, DiffDocumentProducer.Filter.PASS_ALL);
 	}
 
 
@@ -150,6 +155,7 @@ public class Indexer {
 		String dataDir = args[1];
 		double ramBufferSizeMB = 1024;
 		int poolsize = nThreads * 10000;
+		boolean overwrite = true;
 		DiffDocumentProducer.Filter filter = DiffDocumentProducer.Filter.PASS_ALL;
 		{
 			String s;
@@ -168,6 +174,9 @@ public class Indexer {
 			if ( (s = System.getProperty("filter")) != null ) {
 				filter = DiffDocumentProducer.Filter.valueOf(s);
 			}
+			if ( (s = System.getProperty("overwrite")) != null ) {
+				overwrite = "false".equals(s);
+			}
 		}
 
 		// setup the writer configuration
@@ -185,7 +194,7 @@ public class Indexer {
 
 		Indexer indexer = null;
 		try {
-			indexer = new Indexer(new IndexWriter(dir, cfg), nThreads, poolsize, reportInterval, filter);
+			indexer = new Indexer(new IndexWriter(dir, cfg), nThreads, poolsize, reportInterval, overwrite, filter);
 			indexer.indexDocuments(new File(dataDir));
 		} finally {
 			if ( indexer != null ) {

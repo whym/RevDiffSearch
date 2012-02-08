@@ -73,12 +73,47 @@ public class TestIndexer {
     //System.err.println(reader.document(findDocument(searcher, new Term("rev_id", "18201"))).getFields());
   }
 
+  @Test public void smallDocumentsOverwrite() throws IOException, InterruptedException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_35,
+                                                               new SimpleNGramAnalyzer(3)));
+    Indexer indexer = new Indexer(writer, 2, 2, 100, true);
+    indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
+                                       "18201	12	3	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
+    indexer.indexDocuments(newTempFile("233192	10	1	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n"));
+    indexer.finish();
+
+    IndexReader reader = IndexReader.open(dir);
+    IndexSearcher searcher = new IndexSearcher(reader);
+    assertEquals(2, reader.numDocs());
+    assertEquals("1", reader.document(findDocument(searcher, new Term("rev_id", "233192"))).get("namespace"));
+    assertEquals("Automated conversion", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("comment"));
+  }
+
+  @Test public void smallDocumentsDuplicate() throws IOException, InterruptedException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_35,
+                                                               new SimpleNGramAnalyzer(3)));
+    Indexer indexer = new Indexer(writer, 2, 2, 100, false);
+    indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
+                                       "18201	12	3	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
+    indexer.indexDocuments(newTempFile("233192	10	1	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n"));
+    indexer.finish();
+
+    IndexReader reader = IndexReader.open(dir);
+    IndexSearcher searcher = new IndexSearcher(reader);
+    assertEquals(3, reader.numDocs());
+    assertEquals("Automated conversion", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("comment"));
+  }
+
   @Test public void smallDocumentsFiltered() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
                                          new IndexWriterConfig(Version.LUCENE_35,
                                                                new SimpleNGramAnalyzer(3)));
-    Indexer indexer = new Indexer(writer, 2, 2, 100, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
+    Indexer indexer = new Indexer(writer, 2, 2, 100, true, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	3	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
@@ -95,7 +130,7 @@ public class TestIndexer {
     IndexWriter writer = new IndexWriter(dir,
                                          new IndexWriterConfig(Version.LUCENE_35,
                                                                new SimpleNGramAnalyzer(3)));
-    Indexer indexer = new Indexer(writer, 2, 4, 100, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
+    Indexer indexer = new Indexer(writer, 2, 4, 100, true, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
