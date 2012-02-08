@@ -71,7 +71,7 @@ public class Indexer {
 							logger.info("" + docs
 													+ " documents have been indexed in "
 													+ (System.currentTimeMillis() - start)
-													+ " msecs (products " + prodq.size() + ")");
+													+ " msecs (" + prodq.size() + " pooled)");
 							Thread.sleep(reportInterval);
 						}
 					} catch (IOException e) {
