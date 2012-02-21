@@ -90,7 +90,7 @@ public class SearcherDaemon implements Runnable {
         @Override
           public ChannelPipeline getPipeline() throws Exception {
           ChannelPipeline pipeline = Channels.pipeline();
-					pipeline.addLast("framer", new DelimiterBasedFrameDecoder(100000, Delimiters.lineDelimiter()));
+					pipeline.addLast("framer", new DelimiterBasedFrameDecoder(RevDiffSearchUtils.getProperty("maxQueryLength", 100000), Delimiters.lineDelimiter()));
 					pipeline.addLast("decoder", new StringEncoder(CharsetUtil.UTF_8));
 					pipeline.addLast("encoder", new StringDecoder(CharsetUtil.UTF_8));
 					pipeline.addLast("handler", new SearcherHandler(searcher, parser));
