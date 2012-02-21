@@ -60,11 +60,14 @@ def load_queries(fname):
     queries = {}
     reader = csv.reader(open(fname))
 
-    for ls in list(reader):
+    ls = list(reader)
+    form = '%0%%dd_%%s.csv' % len(str(len(ls)))
+    for (i,ls) in enumerate(ls):
         q = ls[0]
         f = q.replace(':', '__').replace('!', '__').replace('<', '__').replace('>', '__')
-        f += '.txt'
-        if len(ls) >= 2:
+        f = form % (i+1, f)
+        f = f[0:100]            # length is 100 at max
+        if len(ls) >= 2:        # if the file name is specified in the 2nd colum, use it
             f = ls[1]
         queries[f] = q
     return queries
