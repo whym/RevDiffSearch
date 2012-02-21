@@ -61,7 +61,7 @@ def load_queries(fname):
     reader = csv.reader(open(fname))
 
     ls = list(reader)
-    form = '%0%%dd_%%s.csv' % len(str(len(ls)))
+    form = '%%0%dd_%%s.csv' % len(str(len(ls)))
     for (i,ls) in enumerate(ls):
         q = ls[0]
         f = q.replace(':', '__').replace('!', '__').replace('<', '__').replace('>', '__')
@@ -82,7 +82,7 @@ if __name__ == '__main__':
                         dest='end', type=str, default=None,
                         help='')
     parser.add_argument('-m', '--max', metavar='MAX_REVISIONS',
-                        dest='maxrevs', type=int, default=10000,
+                        dest='maxrevs', type=int, default=1000000,
                         help='')
     parser.add_argument('-n', '--namespace', metavar='NAMESPACE_ID',
                         dest='namespace', type=str, default=None),
@@ -115,6 +115,7 @@ if __name__ == '__main__':
                         help='turn on advanced query format')
     parser.add_argument('inputs', nargs='*')
     options = parser.parse_args()
+    csv.field_size_limit(1000000000)
     queries = {options.output: ' '.join(options.inputs)}
     if options.queryfile:
         queries = load_queries(options.queryfile)
