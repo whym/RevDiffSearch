@@ -23,14 +23,14 @@ def search(host, port, query):
     return json.loads(result)
 
 def format_query(querystr, options):
+    if not options.advanced:
+        querystr = '"%s"' % querystr.replace('"', '\\"')
     if not options.start and options.end:
         options.start = '0'     # some value lexicographically lesser than any year
     if options.start and not options.end:
         options.end = 'Z'       # some value lexicographically greater than any year
     if options.start and options.end:
         querystr += ' timestamp:[%s TO %s]' % (options.start, options.end)
-    if not options.advanced:
-        querystr = '"%s"' % querystr.replace('"', '\\"')
     if options.namespace:
         querystr += ' namespace:' + options.namespace
 
