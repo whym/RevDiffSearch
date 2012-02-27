@@ -18,7 +18,6 @@ import traceback
 import copy
 import re
 import wmf
-import lcp
 import query as query_func
 from wmf.dump.iterator import Iterator
 
@@ -102,8 +101,6 @@ if __name__ == '__main__':
                 revs = [x for x in revs]
                 for rev in revs:
                     texts.append(rev.getText().encode('utf-8'))
-                # cs = lcp.common_substring(texts, len(texts) * 0.9, 20)
-                # print cs
                 # missed = 0
                 for ((revPrev,timePrev), (revNext,timeNext)) in gen_prev_next([(x, x.getTimestamp()) for x in revs], (None, int(time.time()))):
 
