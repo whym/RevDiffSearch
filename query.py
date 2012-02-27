@@ -7,6 +7,23 @@ import ast
 import json
 import socket
 import csv
+from datetime import datetime
+
+def partial_datetime_match(form, s):
+    for i in xrange(1, len(form)):
+        try:
+            datetime.strptime(s, form[0:i])
+            return True
+        except ValueError:
+            None
+    return False
+
+def validate_datetime(form, s):
+    if not s or partial_datetime_match(form, s):
+        return s
+    else:
+        print >>sys.stderr, 'invalid datetime: %s (format: %s)' % (s, form)
+        sys.exit(1)
 
 def search(host, port, query):
     query = json.dumps(query) + "\n"
@@ -23,6 +40,8 @@ def search(host, port, query):
     return json.loads(result)
 
 def format_query(querystr, options):
+    options.start = validate_datetime('%Y-%m-%dT%H:%M:%SZ', options.start)
+    options.end   = validate_datetime('%Y-%m-%dT%H:%M:%SZ', options.end)
     if not options.advanced:
         querystr = '"%s"' % querystr.replace('"', '\\"')
     if not options.start and options.end:
