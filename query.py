@@ -3,7 +3,6 @@
 
 import sys
 import argparse
-import ast
 import json
 import socket
 import csv
