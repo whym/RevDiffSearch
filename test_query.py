@@ -1,13 +1,4 @@
 import unittest
-import urllib
-import tempfile
-import os
-import re
-import StringIO
-from collections import namedtuple
-import timeit
-import sys
-from datetime import datetime
 import query
 
 class TestQuery(unittest.TestCase):
