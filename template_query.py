@@ -18,7 +18,7 @@ import traceback
 import copy
 import re
 import wmf
-import query as query_func
+import trend_query
 from wmf.dump.iterator import Iterator
 
 pattern_void  = re.compile(r'(<noinclude>.*?</noinclude>)', flags=re.DOTALL|re.MULTILINE)
@@ -111,7 +111,7 @@ if __name__ == '__main__':
                     timeNext = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(timeNext))
                     query['q'] += ' timestamp:[%s TO %s]' % (timePrev, timeNext)
                     print >>sys.stderr, query
-                    res = query_func.search('localhost', 8080, query)
+                    res = trend_query.search('localhost', 8080, query)
                     print >>sys.stderr, res['hits_all']
                     inject_result(result, res)
                     #print revPrev.getText()
@@ -130,4 +130,4 @@ if __name__ == '__main__':
             result['hits'] = [[x, [[z] for z in y]] for (x,y) in result['hits'].items()]
         else:
             result['hits'] =  result['hits'].items()
-        query_func.format_result(writer, result, debug=options.debug)
+        trend_query.format_result(writer, result, debug=options.debug)
