@@ -27,7 +27,7 @@ def validate_datetime(form, s):
 def search(host, port, query):
     query = json.dumps(query) + "\n"
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
+    s.connect((host, int(port)))
     s.send(query)
     result = ''
     while 1:
@@ -128,6 +128,9 @@ if __name__ == '__main__':
     parser.add_argument('-q', '--query-file', metavar='FILE',
                         dest='queryfile', type=str, default=None,
                         help='load queries and output file names from a file')
+    parser.add_argument('--host', metavar='HOST',
+                        dest='host', type=str, default='localhost:8080',
+                        help='load queries and output file names from a file')
     parser.add_argument('-a', '--advanced',
                         dest='advanced', action='store_true', default=False,
                         help='turn on advanced query format')
@@ -144,8 +147,9 @@ if __name__ == '__main__':
     if options.verbose:
         print >>sys.stderr, queries
 
+    host,port = options.host.split(':')
     for (output, query) in queries.items():
-        result = search('localhost', 8080, format_query(query, options))
+        result = search(host, port, format_query(query, options))
 
         if options.verbose:
             print >>sys.stderr, result
