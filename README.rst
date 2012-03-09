@@ -31,11 +31,11 @@ You invoke the indexer on the command line using the following command [#]_: ::
 
 then the searcher daemon with the following command: ::
 
- CLASSPATH=$CLASSPATH:target/revdiffsearch-0.1.jar java org.wikimedia.revdiffsearch.SearcherDaemon -index ~/diffdbtest/index
+ CLASSPATH=$CLASSPATH:target/revdiffsearch-0.1.jar java org.wikimedia.revdiffsearch.SearcherDaemon ~/diffdbtest/index
 
 and then you can issue a query with an accompanying script to see which revisions are matched and when they are dated: ::
 
- ./query.py "Welcome to Wikipedia" -R -o monthly_hits.csv
+ ./trend_query.py "Welcome to Wikipedia" -R -o monthly_hits.csv
 
 With the parameters above, the script will find revisions containing "Welcome to Wikipedia" as added text.  You can also search for other fields.  See below for a more detailed format of the query format.
 
@@ -77,9 +77,9 @@ will use ::
 
  added:"Welcome to Wikipedia" timestamp:[2002-01 TO 2003-01]
 
-This query format is used when using ``query.py`` with a
+This query format is used when using ``trend_query.py`` with a
 ``--advanced`` flag turned on, or directly connecting to the
-SearcherDaemon via telnet.  By default ``query.py`` use a command line
+SearcherDaemon via telnet.  By default ``trend_query.py`` use a command line
 argument as a phrase query to the ``added`` field.
 
 See `Lucene's Query Parser Syntax`_ for more details.
