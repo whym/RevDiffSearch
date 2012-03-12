@@ -23,7 +23,6 @@ def chart(entries, output, legends, meta):
 
     lines = []
     for i in xrange(0, len(entries[0][1])):
-        print i
         lines.append(plt.plot([x[0] for x in entries], [x[1][i] for x in entries], '-o'))
     plt.legend(tuple(lines), tuple(legends))
     plt.savefig(output)
@@ -36,12 +35,12 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--chart', metavar='FILE',
                         dest='chart', type=lambda x: open(x, 'w'), default=None,
                         help='name of the result chart to be written')
-    parser.add_argument('-s', '--font-size', metavar='POINT',
-                      dest='fsize', type=int, default=15,
-                      help='')
     parser.add_argument('-v', '--verbose',
                       dest='verbose', action='store_true', default=False,
                       help='turn on verbose message output')
+    parser.add_argument('-s', '--sort',
+                      dest='sort', action='store_true', default=False,
+                      help='sort the results in descending order of hits')
     parser.add_argument('inputs', nargs='*')
     options = parser.parse_args()
     
@@ -79,11 +78,21 @@ if __name__ == '__main__':
     writer = csv.writer(options.output)
 
     entries = sorted(entries.items(), key=lambda x: x[0])
-    entries = [(x[0], [len(y) for y in x[1]])  for x in entries]
+    entries = [[x[0], [len(y) for y in x[1]]]  for x in entries]
+    if options.sort:
+        sums = []
+        for i in xrange(0, len(entries[0][1])):
+            sums.append(sum([x[1][i] for x in entries]))
+        ranks = [x[0] for x in sorted(enumerate(sums), key=lambda x: -x[1])]
+        for x in entries:
+            a = [None] * len(ranks)
+            for (i,r) in enumerate(ranks):
+                a[i] = x[1][r]
+            x[1] = a
+
     for ent in entries:
         writer.writerow([ent[0]] + ent[1])
     
     parse_date = lambda x: datetime.strptime(str(x), '%Y/%m/%d')
     if options.chart != None:
-        #matplotlib.rc('font', size=options.fsize)
         chart([(parse_date(x[0]), [float(y) for y in x[1]]) for x in entries], options.chart, options.inputs, {})
