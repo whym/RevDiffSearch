@@ -29,8 +29,8 @@ def chart(entries, output, legends, meta):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--output', metavar='FILE',
-                        dest='output', type=lambda x: open(x, 'w'), default=sys.stdout,
+    parser.add_argument('-o', '--output',
+                        dest='output', type=argparse.FileType('w'), default=sys.stdout,
                         help='name of the result csv to be written')
     parser.add_argument('-c', '--chart', metavar='FILE',
                         dest='chart', type=lambda x: open(x, 'w'), default=None,

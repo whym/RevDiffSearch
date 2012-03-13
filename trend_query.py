@@ -110,9 +110,9 @@ if __name__ == '__main__':
     parser.add_argument('-R', '--revisions',
                         dest='revisions', action='store_true', default=False,
                         help='show revision IDs of the hits')
-    parser.add_argument('-o', '--output', metavar='FILE',
-                        dest='output', type=lambda x: open(x, 'w'), default=sys.stdout,
-                        help='')
+    parser.add_argument('-o', '--output',
+                        dest='output', type=argparse.FileType('w'), default=sys.stdout,
+                        help='name of the result csv to be written')
     parser.add_argument('-D', '--daily',
                         dest='daily', action='store_true', default=False,
                         help='')
