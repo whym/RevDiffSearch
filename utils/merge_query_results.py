@@ -86,7 +86,9 @@ if __name__ == '__main__':
             for (i,r) in enumerate(ranks):
                 a[i] = x[1][r]
             x[1] = a
+        options.inputs = [x[1] for x in sorted(zip(ranks, options.inputs), key=lambda x: x[0])]
 
+    writer.writerow(['#']+options.inputs)
     for ent in entries:
         writer.writerow([ent[0]] + ent[1])
     
