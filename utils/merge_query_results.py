@@ -48,9 +48,6 @@ if __name__ == '__main__':
 
     # extract paths resolving globs
     paths = [glob.glob(x) for x in options.inputs]
-    if all([len(x) <= 1 for x in paths]):
-        options.inputs = ' '.join(options.inputs)
-        paths = [[x[0] for x in paths if len(x) == 1]]
 
     entries = {}
     for (i,path) in enumerate(paths):
