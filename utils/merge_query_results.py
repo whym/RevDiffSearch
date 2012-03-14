@@ -33,7 +33,7 @@ if __name__ == '__main__':
                         dest='output', type=argparse.FileType('w'), default=sys.stdout,
                         help='name of the result csv to be written')
     parser.add_argument('-c', '--chart', metavar='FILE',
-                        dest='chart', type=lambda x: open(x, 'w'), default=None,
+                        dest='chart', type=str, default=None,
                         help='name of the result chart to be written')
     parser.add_argument('-v', '--verbose',
                       dest='verbose', action='store_true', default=False,
