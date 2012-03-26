@@ -48,9 +48,9 @@ def format_query(querystr, options):
     if options.start and not options.end:
         options.end = 'Z'       # some value lexicographically greater than any year
     if options.start and options.end:
-        querystr += ' timestamp:[%s TO %s]' % (options.start, options.end)
+        querystr = '(%s) timestamp:[%s TO %s]' % (querystr, options.start, options.end)
     if options.namespace:
-        querystr += ' namespace:' + options.namespace
+        querystr = '(%s) namespace:%s' % (querystr, options.namespace)
 
     return {'q': querystr, 'max_revs': options.maxrevs, 'collapse_hits': 'day' if options.daily else 'month', 'fields': ['rev_id'] if options.revisions else []}
 
