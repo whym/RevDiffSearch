@@ -93,6 +93,9 @@ def load_queries(fname):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--pattern', metavar='STR',
+                        dest='pattern', type=str, default=None,
+                        help='query string')
     parser.add_argument('-s', '--start', metavar='DATE',
                         dest='start', type=str, default=None,
                         help='')
@@ -137,6 +140,8 @@ if __name__ == '__main__':
     parser.add_argument('inputs', nargs='*')
     options = parser.parse_args()
     csv.field_size_limit(1000000000)
+    if options.pattern:
+        options.inputs.append(options.pattern)
     queries = {options.output: ' '.join(options.inputs)}
     if options.queryfile:
         queries = load_queries(options.queryfile)
