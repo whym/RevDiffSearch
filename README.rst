@@ -51,6 +51,40 @@ Requirements
 * junit
 * netty
 
+Command line usage
+=====================
+
+Query options
+--------------------------
+Here are some of the command line options for the ``trend_query.py`` script. ::
+ 
+ ./trend_query.py 'query_string' [-m N] [-R] [-d] [-a]
+ 
+ -m N will set N as the maximum number of hits returned (10000 by default).
+ -R   will add revision IDs of those hits.
+ -d   will add some debug information as comments starting with '#'.
+ -a   will switch to the advanced mode where you can search for any field listed at the Query Format section.
+      By default the query string is regarded as the exact string you want to find.
+
+Example queries
+---------------------------
+Here are some of the queries you can make with the ``trend_query.py`` script.
+
+Number of occurrences of the string ''welcome'' for each month [#]_:
+  ::
+  
+  ./trend_query.py 'welcome' -o result.tsv
+Revision IDs of additions that contains no wiki syntax such as ``[[ABC]]``, ``[http://example.com Example]`` or ``{{ABC}}``, and were made between 2011-11-01 and 2011-12-01 [#]_ [#]_:
+  ::
+  
+  ./trend_query.py -a 'added_size:0 AND NOT \[\[?? AND NOT \[??? AND NOT \{\{??' -s 2011-11-01 -e 2011-12-01 -D -R > nowiki_201111.tsv
+
+(to be expanded)
+
+.. [#] Note that the match will be decided with no consideration of word boundary. For example, the query '``welcome``' matches to 'Welcome to Wikipedia' and 'such behavior is unwelcome'.
+.. [#] Note that this query uses four-letter patterns, assuming a 4-gram index.  When the index is created with a 3-gram analyzer, use ``NOT \[\[? AND NOT \[?? AND NOT \{\{?`` instead.
+.. [#] '``?``' is a wildcard that matches to an arbitrary character.
+
 Query format
 =====================
 
@@ -85,23 +119,6 @@ SearcherDaemon via telnet.  By default ``trend_query.py`` use a command line
 argument as a phrase query to the ``added`` field.
 
 See `Lucene's Query Parser Syntax`_ for more details.
-
-Example queries
----------------------------
-Number of occurrences of the string ''welcome'' for each month [#]_:
-  ::
-  
-  ./trend_query.py 'welcome' -o result.tsv
-Revision IDs of additions that contains no wiki syntax such as ``[[ABC]]``, ``[http://example.com Example]`` or ``{{ABC}}``, and were made between 2011-11-01 and 2011-12-01 [#]_ [#]_:
-  ::
-  
-  ./trend_query.py -a 'added_size:0 AND NOT \[\[?? AND NOT \[??? AND NOT \{\{??' -s 2011-11-01 -e 2011-12-01 -D -R > nowiki_201111.tsv
-
-(to be expanded)
-
-.. [#] Note that the match will be decided with no consideration of word boundary. For example, the query '``welcome``' matches to 'Welcome to Wikipedia' and 'such behavior is unwelcome'.
-.. [#] Note that this query uses four-letter patterns, assuming a 4-gram index.  When the index is created with a 3-gram analyzer, use ``NOT \[\[? AND NOT \[?? AND NOT \{\{?`` instead.
-.. [#] '``?``' is a wildcard that matches to an arbitrary character.
 
 Configurations
 =====================
