@@ -39,6 +39,8 @@ and then you can issue a query with an accompanying script to see which revision
 
 With the parameters above, the script will find revisions containing "Welcome to Wikipedia" as added text.  You can also search for other fields.  See below for a more detailed format of the query format.
 
+.. [#] ~/diffdbtest/data/diffs must contains the revision diff files explained at http://meta.wikimedia.org/wiki/WSoR_datasets/revision_diff
+
 Requirements
 =====================
 
@@ -84,7 +86,22 @@ argument as a phrase query to the ``added`` field.
 
 See `Lucene's Query Parser Syntax`_ for more details.
 
+Example queries
+---------------------------
+Number of occurrences of the string ''welcome'' for each month [#]_:
+  ::
+  
+  ./trend_query.py 'welcome' -o result.tsv
+Revision IDs of additions that contains no wiki syntax such as ``[[ABC]]``, ``[http://example.com Example]`` or ``{{ABC}}``, and were made between 2011-11-01 and 2011-12-01 [#]_ [#]_:
+  ::
+  
+  ./trend_query.py -a 'added_size:0 AND NOT \[\[?? AND NOT \[??? AND NOT \{\{??' -s 2011-11-01 -e 2011-12-01 -D -R > nowiki_201111.tsv
+
 (to be expanded)
+
+.. [#] Note that the match will be decided with no consideration of word boundary. For example, the query '``welcome``' matches to 'Welcome to Wikipedia' and 'such behavior is unwelcome'.
+.. [#] Note that this query uses four-letter patterns, assuming a 4-gram index.  When the index is created with a 3-gram analyzer, use ``NOT \[\[? AND NOT \[?? AND NOT \{\{?`` instead.
+.. [#] '``?``' is a wildcard that matches to an arbitrary character.
 
 Configurations
 =====================
@@ -104,7 +121,6 @@ Architecture
 
 .. _Apache Maven: http://maven.apache.org/
 .. _Lucene's Query Parser Syntax: http://lucene.apache.org/java/3_5_0/queryparsersyntax.html
-.. [#] ~/diffdbtest/data/diffs must contains the revision diff files explained at http://meta.wikimedia.org/wiki/WSoR_datasets/revision_diff
 
 .. Local variables:
 .. mode: rst
