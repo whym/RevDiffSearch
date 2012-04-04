@@ -44,17 +44,13 @@ public class DiffCollector extends Collector {
   private final Map<String,Set<String>> queryFields;
   private int docBase;
   private int maxRevs;
-  private int positives;
   private int skipped;
-  private boolean ensure;
   
-  public DiffCollector(IndexSearcher searcher, String query, int max, boolean ensure) {
+  public DiffCollector(IndexSearcher searcher, String query, int max) {
     this.searcher = searcher;
     this.hits = new BitSet(searcher.getIndexReader().maxDoc());
     this.maxRevs = max;
-    this.positives = 0;
     this.skipped = 0;
-    this.ensure = ensure;
     this.queryFields = getQueryFields(query);
   }
   public static Map<String,Set<String>> getQueryFields(final String query) {
@@ -109,17 +105,12 @@ public class DiffCollector extends Collector {
   public void setScorer(Scorer scorer) {
   }
   
-  public int positives() {
-    return this.positives;
-  }
-  
   public int skipped() {
     return this.skipped;
   }
 
   public void collect(int doc) {
     doc += this.docBase;
-    ++this.positives;
 
     if ( this.hits.cardinality() >= this.maxRevs ) {
       ++this.skipped;
@@ -127,20 +118,7 @@ public class DiffCollector extends Collector {
       return;
     }
     try {
-      if ( this.ensure ) {
-        for ( Map.Entry<String,Set<String>> ent: this.queryFields.entrySet() ) {
-          String str = searcher.doc(doc).getField(ent.getKey()).stringValue();
-          for ( String val: ent.getValue() ) {
-            if ( str.indexOf(val) < 0 ) {
-            this.hits.clear(doc);
-            return;
-            }
-          }
-        }
-      }
       this.hits.set(doc);
-    } catch (IOException e) {
-      logger.severe("failed to read " + doc);
     } catch ( IllegalArgumentException e ) {
       String str = "";
       try {

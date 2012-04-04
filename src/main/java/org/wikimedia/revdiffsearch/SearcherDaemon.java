@@ -173,11 +173,10 @@ public class SearcherDaemon implements Runnable {
 				String query   = qobj.getString("q");						 // to be fed to QueryParser
 				String hitsper = qobj.optString("collapse_hits", "no"); // no or day or month
 				int maxrevs    = qobj.optInt("max_revs", 1000);
-				boolean ensure    = qobj.optBoolean("ensure", false);
 				double version = qobj.optDouble("version", 0.1);		// 
 				JSONArray fields_ = qobj.optJSONArray("fields"); // the fields to be given in the output. if empty, only number of hits will be emitted
 
-				DiffCollector collector = new DiffCollector(this.searcher, query, maxrevs, ensure);
+				DiffCollector collector = new DiffCollector(this.searcher, query, maxrevs);
 				Query parsedQuery = this.parser.parse(query);
 				this.searcher.search(parsedQuery, collector);
 				BitSet hits = collector.getHits();
@@ -199,7 +198,6 @@ public class SearcherDaemon implements Runnable {
 						fields.add(fields_.getString(i));
 					}
 				}
-				ret.put("debug_positives", collector.positives());
 				ret.put("debug_unchecked", collector.skipped());
 				logger.info("response (without hits): " + ret);
 				

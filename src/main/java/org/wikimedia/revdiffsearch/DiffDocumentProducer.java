@@ -107,8 +107,8 @@ public class DiffDocumentProducer implements Runnable {
     }
     createField(doc, new Prop("added_size",   Field.Store.YES, Field.Index.NOT_ANALYZED), "");
     createField(doc, new Prop("removed_size", Field.Store.YES, Field.Index.NOT_ANALYZED), "");
-    createField(doc, new Prop("added",        Field.Store.YES, Field.Index.ANALYZED), "");
-    createField(doc, new Prop("removed",      Field.Store.YES, Field.Index.ANALYZED), "");
+    createField(doc, new Prop("added",        Field.Store.NO,  Field.Index.ANALYZED), "");
+    createField(doc, new Prop("removed",      Field.Store.NO,  Field.Index.ANALYZED), "");
     createField(doc, new Prop("action",       Field.Store.YES, Field.Index.NOT_ANALYZED), "");
     return doc;
   }
