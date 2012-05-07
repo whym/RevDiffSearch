@@ -242,6 +242,38 @@ public class TestSearcherDaemon {
   @Test public void phraseQueryWithHashedNGramAnalysis() throws IOException, JSONException, InterruptedException {
     phraseQuery(new HashedNGramAnalyzer(1, 2, 9876));
   }
+
+  @Test public void operatorQueryOR() throws IOException, JSONException, InterruptedException {
+    Directory dir = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(dir,
+                                         new IndexWriterConfig(Version.LUCENE_35,
+                                                               new SimpleNGramAnalyzer(3)));
+    Indexer indexer = new Indexer(writer, 2, 2, 100);
+    indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
+                                       "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n" +
+                                       "12345	10	0	'Accessiblecomputing'	1980043141	u'*'	False	99	u'Automated conversion'	0:1:u'[[fr:ABC]]\\n'"));
+    indexer.finish();
+
+    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    InetSocketAddress address = findFreeAddress();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
+
+    Thread.sleep(1000L);
+
+    {
+      JSONObject q = new JSONObject();
+      q.put("q", "rev_id:12345 OR page_id:12");
+      q.put("fields", "rev_id");
+      JSONObject json = retrieve(address, q);
+      System.err.println(json);//!
+      assertEquals(2, json.getInt("hits_all"));
+      Set<Integer> system = new HashSet<Integer>();
+      system.add(json.getJSONArray("hits").getJSONArray(0).getInt(0));
+      system.add(json.getJSONArray("hits").getJSONArray(1).getInt(0));
+      assertEquals(new HashSet<Integer>(Arrays.asList(new Integer[]{12345, 18201})),
+                   system);
+    }
+  }
 }
 
 /*
