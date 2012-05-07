@@ -60,6 +60,24 @@ public class TestSearcherDaemon {
     return address;
   }
 
+  private static boolean waitUntilPrepared(InetSocketAddress address, long limit) throws IOException, InterruptedException {
+    long start = System.currentTimeMillis();
+    while ( true) {
+      try {
+        Socket sock = new Socket(address.getAddress(), address.getPort());
+        if ( sock.isConnected() ) {
+          sock.close();
+          return true;
+        }
+      } catch ( ConnectException e ) {
+        Thread.sleep(limit / 20);
+        if ( System.currentTimeMillis() - start > limit ) {
+          return false;
+        }
+      }
+    }
+  }
+
   @Before public void setup() {
     Logger.getLogger(SearcherDaemon.class.getName()).setLevel(Level.WARNING);
     Logger.getLogger(Indexer.class.getName()).setLevel(Level.WARNING);
@@ -79,7 +97,7 @@ public class TestSearcherDaemon {
     InetSocketAddress address = findFreeAddress();
     new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
 
-    Thread.sleep(1000L);
+    assertTrue(waitUntilPrepared(address, 1000L));
 
     // query "/Todo" and receive rev_ids
     {
@@ -119,7 +137,7 @@ public class TestSearcherDaemon {
     InetSocketAddress address = findFreeAddress();
     new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
 
-    Thread.sleep(1000L);
+    assertTrue(waitUntilPrepared(address, 1000L));
 
     // query namespace:0 and page_id:12 and receive rev_ids
     {
@@ -148,7 +166,7 @@ public class TestSearcherDaemon {
     InetSocketAddress address = findFreeAddress();
     new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(1)))).start();
 
-    Thread.sleep(1000L);
+    assertTrue(waitUntilPrepared(address, 1000L));
 
     // query "/Todo" and receive rev_ids monthly
     {
@@ -206,7 +224,7 @@ public class TestSearcherDaemon {
     InetSocketAddress address = findFreeAddress();
     new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", analyzer))).start();
 
-    Thread.sleep(1000L);
+    assertTrue(waitUntilPrepared(address, 1000L));
 
     // query "subject cover" without quotes and receive rev_ids
     {
@@ -258,7 +276,7 @@ public class TestSearcherDaemon {
     InetSocketAddress address = findFreeAddress();
     new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
 
-    Thread.sleep(1000L);
+    assertTrue(waitUntilPrepared(address, 1000L));
 
     {
       JSONObject q = new JSONObject();
@@ -290,7 +308,7 @@ public class TestSearcherDaemon {
     InetSocketAddress address = findFreeAddress();
     new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
 
-    Thread.sleep(1000L);
+    assertTrue(waitUntilPrepared(address, 1000L));
 
     {
       JSONObject q = new JSONObject();
