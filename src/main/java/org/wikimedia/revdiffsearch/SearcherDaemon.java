@@ -16,6 +16,7 @@ import java.util.BitSet;
 import java.util.Date;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -28,6 +29,7 @@ import org.apache.lucene.util.Version;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.index.IndexReader;
 
 import org.jboss.netty.util.CharsetUtil;
 import org.jboss.netty.bootstrap.ServerBootstrap;
@@ -67,8 +69,8 @@ public class SearcherDaemon implements Runnable {
 	private final QueryParser parser;
 	private final long startTimeMillis;
 
-	public SearcherDaemon(InetSocketAddress address, String dir, final QueryParser parser) throws IOException {
-		this(address, new IndexSearcher(FSDirectory.open(new File(dir)), true), parser);
+	public SearcherDaemon(InetSocketAddress address, String dir, final QueryParser parser, int threads) throws IOException {
+		this(address, new IndexSearcher(IndexReader.open(FSDirectory.open(new File(dir))), Executors.newFixedThreadPool(threads)), parser);
 	}
 
 	public SearcherDaemon(InetSocketAddress address, IndexSearcher searcher, final QueryParser parser) throws IOException {
@@ -264,9 +266,10 @@ public class SearcherDaemon implements Runnable {
 
   public static void main(String[] args) throws IOException {
 		if ( args.length < 1 ) {
-			System.err.println("usage: java -Dngram=N " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER>");
+			System.err.println("usage: java -Dngram=N " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER> <THREADS>");
 		}
 		int port = 8080;
+		int threads = 2;
 		String dir = args[0];
 		if ( args.length >= 2 ) {
 			try {
@@ -275,9 +278,17 @@ public class SearcherDaemon implements Runnable {
 				// do nothing
 			}
 		}
+		if ( args.length >= 3 ) {
+			try {
+				threads = Integer.parseInt(args[2]);
+			} catch ( NumberFormatException e ) {
+				// do nothing
+			}
+		}
 		new SearcherDaemon(new InetSocketAddress(port),
 											 dir,
-											 new QueryParser(Version.LUCENE_35, "added", RevDiffSearchUtils.getAnalyzer())).run();
+											 new QueryParser(Version.LUCENE_35, "added", RevDiffSearchUtils.getAnalyzer()),
+											 threads).run();
   }
 }
 
