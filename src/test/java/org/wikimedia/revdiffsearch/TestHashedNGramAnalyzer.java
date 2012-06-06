@@ -72,7 +72,7 @@ public class TestHashedNGramAnalyzer {
   @Test public void createDcumentAndExtractTerms() throws IOException, ParseException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new HashedNGramAnalyzer(3, 4, 1234)));
     writer.addDocument(newDocument("title", "help"));
     writer.commit();
@@ -94,7 +94,7 @@ public class TestHashedNGramAnalyzer {
   @Test public void createDcumentAndSearch() throws IOException, ParseException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new HashedNGramAnalyzer(3, 4, 1234)));
     writer.addDocument(newDocument("title", "help"));
     writer.commit();
@@ -130,7 +130,7 @@ public class TestHashedNGramAnalyzer {
   @Test public void createDcumentAndSearchPhrase() throws IOException, ParseException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new HashedNGramAnalyzer(3, 5, 1234)));
     writer.addDocument(newDocument("title", "help page 1"));
     writer.addDocument(newDocument("title", "help page 2"));
@@ -143,7 +143,7 @@ public class TestHashedNGramAnalyzer {
     IndexReader reader = IndexReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     System.err.println("query");
-    QueryParser parser = new QueryParser(Version.LUCENE_35, "title", new HashedNGramAnalyzer(3, 5, 1234));
+    QueryParser parser = new QueryParser(Version.LUCENE_36, "title", new HashedNGramAnalyzer(3, 5, 1234));
     parser.setDefaultOperator(QueryParser.AND_OPERATOR);
     Query query = parser.parse("\"help page\"~2");
     final Set<Integer> hits = new HashSet<Integer>();

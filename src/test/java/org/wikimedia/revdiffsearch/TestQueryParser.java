@@ -16,7 +16,7 @@ public class TestQueryParser {
 	public QueryParser qp; 
 	
 	public TestQueryParser() throws ParseException {
-		this.qp = new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3));
+		this.qp = new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3));
 	}
 	
 	@Test

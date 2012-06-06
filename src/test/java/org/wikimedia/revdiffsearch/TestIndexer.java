@@ -56,7 +56,7 @@ public class TestIndexer {
   @Test public void smallDocuments() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -76,7 +76,7 @@ public class TestIndexer {
   @Test public void smallDocumentsOverwrite() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100, true);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -94,7 +94,7 @@ public class TestIndexer {
   @Test public void smallDocumentsDuplicate() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100, false);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -111,7 +111,7 @@ public class TestIndexer {
   @Test public void smallDocumentsFiltered() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100, true, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -128,7 +128,7 @@ public class TestIndexer {
   @Test public void smallDocumentsFilteredNoResults() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 4, 100, true, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +

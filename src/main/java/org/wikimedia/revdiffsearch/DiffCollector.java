@@ -40,7 +40,7 @@ public class DiffCollector extends Collector {
     final Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
     final Map<String,Set<String>> rem = new HashMap<String,Set<String>>();
     try {
-      QueryParser ps = new QueryParser(Version.LUCENE_35, "added", new CallbackAnalyzer(new CallbackAnalyzer.Callback() {
+      QueryParser ps = new QueryParser(Version.LUCENE_36, "added", new CallbackAnalyzer(new CallbackAnalyzer.Callback() {
           public void execute(String field, String value) {
             assert value.length() > 0;
 

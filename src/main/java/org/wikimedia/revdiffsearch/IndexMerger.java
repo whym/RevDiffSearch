@@ -72,7 +72,7 @@ public class IndexMerger {
 		Date start = new Date();
 
 		try {
-			IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_35,
+			IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_36,
                                                     new SimpleNGramAnalyzer(ngram));
 			LogDocMergePolicy lmp = new LogDocMergePolicy();
 			lmp.setMergeFactor(1000);
@@ -82,7 +82,7 @@ public class IndexMerger {
 			IndexWriter writer = new IndexWriter(FSDirectory.open(INDEX_DIR), cfg);
 
 			// IndexWriter writer = new IndexWriter(INDEX_DIR,
-			// new StandardAnalyzer(Version.LUCENE_35),
+			// new StandardAnalyzer(Version.LUCENE_36),
 			// true);
 			// writer.setMergeFactor(1000);
 			// writer.setRAMBufferSizeMB(50);

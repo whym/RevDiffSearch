@@ -287,7 +287,7 @@ public class SearcherDaemon implements Runnable {
 		}
 		new SearcherDaemon(new InetSocketAddress(port),
 											 dir,
-											 new QueryParser(Version.LUCENE_35, "added", RevDiffSearchUtils.getAnalyzer()),
+											 new QueryParser(Version.LUCENE_36, "added", RevDiffSearchUtils.getAnalyzer()),
 											 threads).run();
   }
 }

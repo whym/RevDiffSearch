@@ -14,7 +14,7 @@ public class TestCallbackAnalyzer {
   @Test public void testWithQueryParser() throws Exception {
     final String[] result = new String[]{null, null};
     QueryParser parser = new QueryParser
-      (Version.LUCENE_35, "added",
+      (Version.LUCENE_36, "added",
        new CallbackAnalyzer(new CallbackAnalyzer.Callback() {
            public void execute(String f, String v) {
              result[0] = f;

@@ -86,7 +86,7 @@ public class TestSearcherDaemon {
   @Test public void smallDocuments() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -95,7 +95,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -126,7 +126,7 @@ public class TestSearcherDaemon {
   @Test public void smallDocumentsComplexQueries() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -135,7 +135,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -154,7 +154,7 @@ public class TestSearcherDaemon {
   @Test public void smallDocumentsWithCollapsedHits() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(1)));
     Indexer indexer = new Indexer(writer, 2, 10, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -164,7 +164,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(1)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(1)))).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -213,7 +213,7 @@ public class TestSearcherDaemon {
   private static void phraseQuery(Analyzer analyzer) throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                analyzer));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Title1'	980043141	u'comment1'	False	99	u'uname1'	0:1:u' subject cover \n'q" +
@@ -222,7 +222,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", analyzer))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", analyzer))).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -264,7 +264,7 @@ public class TestSearcherDaemon {
   @Test public void operatorQueryOR() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -274,7 +274,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -296,7 +296,7 @@ public class TestSearcherDaemon {
   @Test public void operatorQueryWildcard() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_35,
+                                         new IndexWriterConfig(Version.LUCENE_36,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -306,7 +306,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_35, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
