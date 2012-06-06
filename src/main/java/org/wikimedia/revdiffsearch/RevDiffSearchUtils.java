@@ -1,6 +1,12 @@
 package org.wikimedia.revdiffsearch;
 
 import java.util.Properties;
+import java.util.Map;
+import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.File;
 import org.apache.lucene.analysis.Analyzer;
 import java.util.logging.Logger;
 
@@ -51,6 +57,49 @@ public class RevDiffSearchUtils {
     }
   }
 
+  public static boolean getProperty(String k, boolean def) {
+    String s = prop.getProperty(k);
+    if ( s == null ) {
+      return def;
+    } else {
+      return !("false".equals(s.toLowerCase()));
+    }
+  }
+
+  /**
+   * Loads the default property file for this class. Properties can be retrieved with {@link #getProperty(String)} or {@link #getProperties()}.
+   */
+  public static void loadProperties() {
+    loadProperties(RevDiffSearchUtils.class);
+  }
+  public static void loadProperties(File file) throws IOException {
+    loadProperties(new FileInputStream(file));
+  }
+  public static <T> void loadProperties(Class<T> cls) {
+    try {
+      String name = cls.getName().replace('.','/') + ".properties";
+      InputStream is = cls.getClassLoader().getResourceAsStream(name);
+      if ( is == null ) {
+        logger.warning(name + " not found");
+        return;
+      } else {
+        logger.info("loading Properies: " + name);
+        loadProperties(is);
+      }
+    } catch (IOException e) {
+      if ( getProperty("verbose", false) ) {
+        e.printStackTrace();
+      }
+    }
+  }
+  private static void loadProperties(InputStream is) throws IOException {
+    Properties loaded = new Properties();
+    loaded.load(new InputStreamReader(is));
+    for (Map.Entry<Object,Object> ent: loaded.entrySet()) {
+      if ( prop.getProperty(ent.getKey().toString()) == null )
+        prop.setProperty(ent.getKey().toString(), ent.getValue().toString());
+    }
+  }
 
   public static Analyzer getAnalyzer() {
     int seed = getProperty("ngram_seed", -1);

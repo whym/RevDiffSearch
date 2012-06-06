@@ -16,7 +16,6 @@ import java.util.BitSet;
 import java.util.Date;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -68,17 +67,19 @@ public class SearcherDaemon implements Runnable {
 	private final IndexSearcher searcher;
 	private final QueryParser parser;
 	private final long startTimeMillis;
+	private final int threads;
 
 	public SearcherDaemon(InetSocketAddress address, String dir, final QueryParser parser, int threads) throws IOException {
-		this(address, new IndexSearcher(IndexReader.open(FSDirectory.open(new File(dir))), Executors.newFixedThreadPool(threads)), parser);
+		this(address, new IndexSearcher(IndexReader.open(FSDirectory.open(new File(dir)))), parser, threads);
 	}
 
-	public SearcherDaemon(InetSocketAddress address, IndexSearcher searcher, final QueryParser parser) throws IOException {
+	public SearcherDaemon(InetSocketAddress address, IndexSearcher searcher, final QueryParser parser, int threads) throws IOException {
 		this.address = address;
 		this.searcher = searcher;
 		this.parser = parser;
 		this.parser.setDefaultOperator(QueryParser.AND_OPERATOR);
 		this.startTimeMillis = System.currentTimeMillis();
+		this.threads = threads;
 		logger.info("given the index containing " + searcher.maxDoc() + " entries");
 	}
 	
@@ -95,7 +96,7 @@ public class SearcherDaemon implements Runnable {
 					pipeline.addLast("framer", new DelimiterBasedFrameDecoder(RevDiffSearchUtils.getProperty("maxQueryLength", 100000), Delimiters.lineDelimiter()));
 					pipeline.addLast("decoder", new StringEncoder(CharsetUtil.UTF_8));
 					pipeline.addLast("encoder", new StringDecoder(CharsetUtil.UTF_8));
-					pipeline.addLast("handler", new SearcherHandler(searcher, parser));
+					pipeline.addLast("handler", new SearcherHandler(searcher, parser, threads));
           return pipeline;
         }
       });
@@ -107,10 +108,12 @@ public class SearcherDaemon implements Runnable {
   public static class SearcherHandler extends SimpleChannelUpstreamHandler {
     private final IndexSearcher searcher;
     private final QueryParser parser;
+		private final int threads;
 
-    public SearcherHandler(IndexSearcher searcher, QueryParser parser) {
+    public SearcherHandler(IndexSearcher searcher, QueryParser parser, int threads) {
       this.searcher = searcher;
       this.parser = parser;
+			this.threads = threads;
     }
 
 
@@ -178,14 +181,14 @@ public class SearcherDaemon implements Runnable {
 				double version = qobj.optDouble("version", 0.1);		// 
 				JSONArray fields_ = qobj.optJSONArray("fields"); // the fields to be given in the output. if empty, only number of hits will be emitted
 
-				DiffCollector collector = new DiffCollector(this.searcher, query, maxrevs);
-				Query parsedQuery = this.parser.parse(query);
-				this.searcher.search(parsedQuery, collector);
+				//SearchResults collector = new DiffCollector(this.searcher, maxrevs);
+				SearchResults collector = new ParallelCollector(this.searcher, maxrevs, Executors.newFixedThreadPool(threads));
+				collector.issue(query, this.parser);
 				BitSet hits = collector.getHits();
 				JSONObject ret = new JSONObject();
 
 				ret.put("hits_all", hits.cardinality());
-				ret.put("parsed_query", parsedQuery);
+				ret.put("parsed_query", this.parser.parse(query));
 
 				List<String> fields = new ArrayList<String>();
 				if ( fields_ == null ) {
@@ -200,7 +203,7 @@ public class SearcherDaemon implements Runnable {
 						fields.add(fields_.getString(i));
 					}
 				}
-				ret.put("debug_unchecked", collector.skipped());
+				ret.put("debug_unchecked", collector.getNumberOfSkippedDocuments());
 				logger.info("response (without hits): " + ret);
 				
 				Pattern cpattern;
@@ -266,10 +269,10 @@ public class SearcherDaemon implements Runnable {
 
   public static void main(String[] args) throws IOException {
 		if ( args.length < 1 ) {
-			System.err.println("usage: java -Dngram=N " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER> <THREADS>");
+			System.err.println("usage: java -Dngram=N -Dnthreads=N " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER>");
 		}
 		int port = 8080;
-		int threads = 2;
+		int threads = RevDiffSearchUtils.getProperty("nthreads", Runtime.getRuntime().availableProcessors());
 		String dir = args[0];
 		if ( args.length >= 2 ) {
 			try {
@@ -285,6 +288,7 @@ public class SearcherDaemon implements Runnable {
 				// do nothing
 			}
 		}
+		logger.info("using " + threads + " threads");
 		new SearcherDaemon(new InetSocketAddress(port),
 											 dir,
 											 new QueryParser(Version.LUCENE_36, "added", RevDiffSearchUtils.getAnalyzer()),

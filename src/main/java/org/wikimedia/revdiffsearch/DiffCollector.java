@@ -18,25 +18,38 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.search.Query;
 
-public class DiffCollector extends Collector {
+public class DiffCollector extends Collector implements SearchResults {
 	private static final Logger logger = Logger.getLogger(DiffCollector.class.getName());
 
-  private final IndexSearcher searcher;
-  private final BitSet hits;
-  private final Map<String,Set<String>> queryFields;
+  protected IndexSearcher searcher;
+  protected final BitSet hits;
+  private Map<String,Set<String>> queryFields;
   private int docBase;
   private int maxRevs;
   private int skipped;
-  
-  public DiffCollector(IndexSearcher searcher, String query, int max) {
+  protected Query parsed;
+
+  public DiffCollector(IndexSearcher searcher, int max) {
     this.searcher = searcher;
     this.hits = new BitSet(searcher.getIndexReader().maxDoc());
     this.maxRevs = max;
     this.skipped = 0;
-    this.queryFields = getQueryFields(query);
   }
-  public static Map<String,Set<String>> getQueryFields(final String query) {
+  public void setSearcher(IndexSearcher seacher) {
+    this.searcher = searcher;
+  }
+  protected void prepare(String query, QueryParser parser) throws ParseException {
+    this.queryFields = getQueryFields(query);
+    this.parsed = parser.parse(query);
+  }
+
+  public void issue(String query, QueryParser parser) throws ParseException, IOException {
+    this.prepare(query, parser);
+    this.searcher.search(parsed, this);
+  }
+  protected static Map<String,Set<String>> getQueryFields(final String query) {
     final Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
     final Map<String,Set<String>> rem = new HashMap<String,Set<String>>();
     try {
@@ -88,7 +101,7 @@ public class DiffCollector extends Collector {
   public void setScorer(Scorer scorer) {
   }
   
-  public int skipped() {
+  public int getNumberOfSkippedDocuments() {
     return this.skipped;
   }
 
@@ -105,7 +118,7 @@ public class DiffCollector extends Collector {
     } catch ( IllegalArgumentException e ) {
       String str = "";
       try {
-        str = searcher.doc(doc).getFields().toString();
+        str = this.searcher.doc(doc).getFields().toString();
         logger.warning("unexpected set of fields: " + str);
       } catch (IOException ex) {
       }

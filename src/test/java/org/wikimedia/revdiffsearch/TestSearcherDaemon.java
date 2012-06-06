@@ -83,6 +83,7 @@ public class TestSearcherDaemon {
     Logger.getLogger(Indexer.class.getName()).setLevel(Level.WARNING);
   }
 
+
   @Test public void smallDocuments() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
@@ -95,7 +96,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 3)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -135,7 +136,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -164,7 +165,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(1)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(1)), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -222,7 +223,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", analyzer))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", analyzer), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -274,7 +275,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -306,7 +307,7 @@ public class TestSearcherDaemon {
 
     IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)))).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -329,6 +330,10 @@ public class TestSearcherDaemon {
       assertEquals(2, json.getInt("hits_all"));
     }
   }
+
+  // @Test public void multithreaded() throws IOException, JSONException, InterruptedException {
+  // }
+  // To test with multithreading and multi segments, the test data needs to be large enough otherwise lucen will end up with only one segment
 }
 
 /*
