@@ -1,29 +1,15 @@
 package org.wikimedia.revdiffsearch;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
-import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.BitSet;
-import java.util.Date;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.TopScoreDocCollector;
-import org.apache.lucene.search.TopDocsCollector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.search.IndexSearcher;
@@ -32,9 +18,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.KeywordTokenizer;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 public class DiffCollector extends Collector {
 	private static final Logger logger = Logger.getLogger(DiffCollector.class.getName());
