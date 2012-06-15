@@ -5,7 +5,7 @@
   
   <groupId>org.wikimedia</groupId>
   <artifactId>revdiffsearch</artifactId>
-  <version>0.1</version>
+  <version>0.2</version>
   <packaging>jar</packaging>
   <name>revdiffsearch</name>
   <url>http://github.com/whym/revdiffsearch</url>
