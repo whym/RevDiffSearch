@@ -143,8 +143,8 @@ public class Indexer {
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		// load configurations
-		int nThreads = 15;
-		long reportInterval = 10000L;
+		int nThreads = RevDiffSearchUtils.getProperty("nthreads", Runtime.getRuntime().availableProcessors() * 2 - 1);
+		long reportInterval = RevDiffSearchUtils.getProperty("reportInterval", 10000L);
 		if (args.length != 2) {
 			System.err.println("Usage: java -Dngram=N " + Indexer.class.getName()
 												 + " <index dir> <data dir>");
@@ -153,31 +153,10 @@ public class Indexer {
 		final long start = System.currentTimeMillis();
 		String indexDir = args[0];
 		String dataDir = args[1];
-		double ramBufferSizeMB = 1024;
-		int poolsize = nThreads * 10000;
-		boolean overwrite = true;
-		DiffDocumentProducer.Filter filter = DiffDocumentProducer.Filter.PASS_ALL;
-		{
-			String s;
-			if ( (s = System.getProperty("poolSize")) != null ) {
-				poolsize = Integer.parseInt(s);
-			}
-			if ( (s = System.getProperty("reportInterval")) != null ) {
-				reportInterval = Integer.parseInt(s);
-			}
-			if ( (s = System.getProperty("nThreads")) != null ) {
-				nThreads = Integer.parseInt(s);
-			}
-			if ( (s = System.getProperty("ramBufferSize")) != null ) {
-				ramBufferSizeMB = Integer.parseInt(s);
-			}
-			if ( (s = System.getProperty("filter")) != null ) {
-				filter = DiffDocumentProducer.Filter.valueOf(s);
-			}
-			if ( (s = System.getProperty("overwrite")) != null ) {
-				overwrite = "false".equals(s);
-			}
-		}
+		double ramBufferSizeMB = RevDiffSearchUtils.getProperty("ramBufferSize", 1024.0);
+		int poolsize = RevDiffSearchUtils.getProperty("poolSize", nThreads * 10000);
+		boolean overwrite = RevDiffSearchUtils.getProperty("overwrite", true);
+		DiffDocumentProducer.Filter filter = DiffDocumentProducer.Filter.valueOf(RevDiffSearchUtils.getProperty("filter", "PASS_ALL"));
 
 		// setup the writer configuration
 		Directory dir = new NIOFSDirectory(new File(indexDir), null);

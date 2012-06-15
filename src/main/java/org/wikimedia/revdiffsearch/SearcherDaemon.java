@@ -269,10 +269,10 @@ public class SearcherDaemon implements Runnable {
 
   public static void main(String[] args) throws IOException {
 		if ( args.length < 1 ) {
-			System.err.println("usage: java -Dngram=N -Dnthreads=N " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER>");
+			System.err.println("usage: java -Dngram=N -DnThreads=N " + SearcherDaemon.class + " <INDEX_DIR> <PORT_NUMBER>");
 		}
 		int port = 8080;
-		int threads = RevDiffSearchUtils.getProperty("nthreads", Runtime.getRuntime().availableProcessors());
+		int threads = RevDiffSearchUtils.getProperty("nThreads", Runtime.getRuntime().availableProcessors());
 		String dir = args[0];
 		if ( args.length >= 2 ) {
 			try {
