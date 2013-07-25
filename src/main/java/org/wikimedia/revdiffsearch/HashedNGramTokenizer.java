@@ -63,22 +63,6 @@ public final class HashedNGramTokenizer extends Tokenizer {
 
   /**
    * Creates NGramTokenizer with given min and max n-grams.
-   * @param source {@link AttributeSource} to use
-   * @param input {@link Reader} holding the input to be tokenized
-   * @param minGram the smallest n-gram to generate
-   * @param maxGram the largest n-gram to generate
-   */
-  public HashedNGramTokenizer(AttributeSource source, Reader input, int minGram, int maxGram, int seed) {
-    super(source, input);
-    this.addAttributeImpl(new NGramHashAttributeImpl());
-    this.hashAtt   = addAttribute(NGramHashAttribute.class);
-    this.termAtt   = addAttribute(CharTermAttribute.class);
-    this.offsetAtt = addAttribute(OffsetAttribute.class);
-    this.init(minGram, maxGram, seed);
-  }
-
-  /**
-   * Creates NGramTokenizer with given min and max n-grams.
    * @param factory {@link org.apache.lucene.util.AttributeSource.AttributeFactory} to use
    * @param input {@link Reader} holding the input to be tokenized
    * @param minGram the smallest n-gram to generate
@@ -114,7 +98,6 @@ public final class HashedNGramTokenizer extends Tokenizer {
   }
 
   /** Returns the next token in the stream, or null at EOS. */
-  @Override
   public final boolean incrementToken() throws IOException {
     this.clearAttributes();
     if (!this.started) {
@@ -165,12 +148,6 @@ public final class HashedNGramTokenizer extends Tokenizer {
     this.offsetAtt.setOffset(finalOffset, finalOffset);
   }
   
-  @Override
-  public void reset(Reader input) throws IOException {
-    super.reset(input);
-    this.reset();
-  }
-
   @Override
   public void reset() throws IOException {
     super.reset();

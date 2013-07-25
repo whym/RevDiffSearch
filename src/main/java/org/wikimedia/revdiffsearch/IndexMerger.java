@@ -53,12 +53,8 @@ public class IndexMerger {
     int ramBufferSizeMB = 1024;
     int ngram = 3;
 		File INDEX_DIR = new File(args[0]);
-    boolean optimize = true;
     {
       String s;
-      if ( (s = System.getProperty("optimize")) != null ) {
-        optimize = "true".equals(s);
-      }
       if ( (s = System.getProperty("ngram")) != null ) {
         ngram = Integer.parseInt(s);
       }
@@ -72,7 +68,7 @@ public class IndexMerger {
 		Date start = new Date();
 
 		try {
-			IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_36,
+			IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_44,
                                                     new SimpleNGramAnalyzer(ngram));
 			LogDocMergePolicy lmp = new LogDocMergePolicy();
 			lmp.setMergeFactor(1000);
@@ -82,7 +78,7 @@ public class IndexMerger {
 			IndexWriter writer = new IndexWriter(FSDirectory.open(INDEX_DIR), cfg);
 
 			// IndexWriter writer = new IndexWriter(INDEX_DIR,
-			// new StandardAnalyzer(Version.LUCENE_36),
+			// new StandardAnalyzer(Version.LUCENE_44),
 			// true);
 			// writer.setMergeFactor(1000);
 			// writer.setRAMBufferSizeMB(50);
@@ -98,10 +94,6 @@ public class IndexMerger {
 			writer.addIndexes(indexes.toArray(new Directory[indexes.size()]));
 			System.out.println("done");
 
-      if ( optimize ) {
-        System.out.print("Optimizing index...");
-        writer.optimize();
-      }
 			writer.close();
 			System.out.println("done");
 

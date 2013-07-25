@@ -2,12 +2,15 @@ package org.wikimedia.revdiffsearch;
 
 import java.util.Properties;
 import java.util.Map;
+import java.util.HashMap;
 import java.io.IOException;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.File;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import java.util.logging.Logger;
 
 public class RevDiffSearchUtils {
@@ -107,15 +110,29 @@ public class RevDiffSearchUtils {
     int n = getProperty("ngram", 3);
     if ( m != 0 && n != 0 && seed >= 0) {
 			logger.info(String.format("using HashedNGramAnalyzer(%d, %d, %d)", n, m, seed));
-      return new HashedNGramAnalyzer(n, m, seed);
+      return getAnalyzerCombined(new HashedNGramAnalyzer(n, m, seed), new KeywordAnalyzer());
     } else if ( m != 0 && n != 0 ) {
 			logger.info(String.format("using NGramAnalyzer(%d, %d)", n, m));
-			return new NGramAnalyzer(n, m);
+			return getAnalyzerCombined(new NGramAnalyzer(n, m), new KeywordAnalyzer());
 		} else {
 			logger.info(String.format("using SimpleNGramAnalyzer(%d)", n));
-			return new SimpleNGramAnalyzer(n);
+			return getAnalyzerCombined(new SimpleNGramAnalyzer(n), new KeywordAnalyzer());
 		}
   }
+
+  public static Analyzer getAnalyzerCombined(Analyzer tokenized) {
+		return getAnalyzerCombined(tokenized, new KeywordAnalyzer());
+	}
+  public static Analyzer getAnalyzerCombined(Analyzer tokenized, Analyzer no_tokenized) {
+    Map<String,Analyzer> set = new HashMap<String,Analyzer>();
+		for ( Map.Entry<String,SearchPropertySet.Property> e: SearchPropertySet.getInstance().getProperties().entrySet() ) {
+			if ( e.getValue().isAnalyzed() ) {
+        set.put(e.getKey(), tokenized);
+      }
+    }
+		return new PerFieldAnalyzerWrapper(no_tokenized, set);
+	}
+
 }
 /*
  * Local variables:

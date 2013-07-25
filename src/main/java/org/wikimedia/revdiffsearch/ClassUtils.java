@@ -27,7 +27,7 @@ public class ClassUtils {
     try {
       Class<? extends T> cls = Class.forName(clsname).asSubclass(basecls);
       logger.info("class found: " + clsname);
-      for ( Constructor cs: cls.getConstructors() ) {
+      for ( Constructor<?> cs: cls.getConstructors() ) {
         try {
           if ( cs.getParameterTypes().length != args.length ) {
             continue;
@@ -36,11 +36,7 @@ public class ClassUtils {
           for ( int i = 0; i < args.length; ++i ) {
             args_[i] = parseValue(args[i], cs.getParameterTypes()[i]);
           }
-          System.err.println(Arrays.asList(cs.getParameterTypes()) + " " + Arrays.asList(args_));//!
-          for ( int i = 0; i < args.length; ++i ) {
-            System.err.println(cs.getParameterTypes()[i] + " " + args_[i].getClass());//!        
-          }
-          return (T)cs.newInstance(args);
+          return (T)cs.newInstance((Object[])args);
         } catch ( IllegalArgumentException e ) {
           logger.info(e.toString());//!
           e.printStackTrace();//!

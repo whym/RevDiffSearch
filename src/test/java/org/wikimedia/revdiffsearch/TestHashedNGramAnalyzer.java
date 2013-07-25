@@ -6,10 +6,11 @@ import ie.ucd.murmur.MurmurHash;
 import org.apache.lucene.analysis.tokenattributes.*;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.search.*;
@@ -36,7 +37,12 @@ public class TestHashedNGramAnalyzer {
 
   private static Document newDocument(String field, String value) {
     Document doc = new Document();
-    doc.add(new Field(field, value, Field.Store.YES, Field.Index.ANALYZED));
+    FieldType tp = new FieldType();
+    tp.setIndexed(true);
+    tp.setStored(true);
+    tp.setTokenized(true);
+    tp.setStoreTermVectors(true);
+    doc.add(new Field(field, value, tp));
     return doc;
   }
 
@@ -47,6 +53,7 @@ public class TestHashedNGramAnalyzer {
     NGramHashAttribute hasha = (NGramHashAttribute)ts.addAttribute(NGramHashAttribute.class);
     List<Integer> hashes = new ArrayList<Integer>();
     List<Integer> hashes2 = new ArrayList<Integer>();
+    ts.reset();
     while (ts.incrementToken()) {
       hashes.add(hasha.getValue());
       hashes2.add(decodeInteger(terma.toString()));
@@ -61,6 +68,7 @@ public class TestHashedNGramAnalyzer {
     NGramHashAttribute hasha = (NGramHashAttribute)ts.addAttribute(NGramHashAttribute.class);
     List<Integer> hashes = new ArrayList<Integer>();
     List<Integer> hashes2 = new ArrayList<Integer>();
+    ts.reset();
     while (ts.incrementToken()) {
       hashes.add(hasha.getValue());
       hashes2.add(decodeInteger(terma.toString()));
@@ -72,18 +80,42 @@ public class TestHashedNGramAnalyzer {
   @Test public void createDcumentAndExtractTerms() throws IOException, ParseException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new HashedNGramAnalyzer(3, 4, 1234)));
-    writer.addDocument(newDocument("title", "help"));
-    writer.commit();
-    writer.optimize();
+    Document doc = newDocument("title", "help");
+    doc.add(new StringField("id", "X", Field.Store.YES));
+    writer.addDocument(doc);
     writer.close();
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
+    assertEquals(0, reader.numDeletedDocs());
     assertEquals(1, reader.maxDoc());
-    TermEnum terms = reader.terms();
+
+    final int[] hit = new int[]{-1};
+    Query query = new TermQuery(new Term("id", "X"));
+
+    new IndexSearcher(reader).search(query, new Collector() {
+        private int docBase;
+        public void setScorer(Scorer scorer) {}
+        public boolean acceptsDocsOutOfOrder() { return true; }
+        public void collect(int doc) {
+          hit[0] = this.docBase + doc;
+        }
+        
+        public void setNextReader(AtomicReaderContext context) {
+          this.docBase = context.docBase;
+        }
+      });
+
+    TermsEnum terms = null;
+    assertNotSame(-1, hit[0]);
+    assertEquals("help", reader.document(hit[0]).getField("title").stringValue());
+    Terms t = reader.getTermVector(hit[0], "title");
+    assertNotNull(t);
+    terms = t.iterator(null);
     Set<Integer> observed = new HashSet<Integer>();
-    while ( terms.next()) {
-      observed.add(decodeInteger(terms.term().text()));
+    BytesRef term;
+    while ( (term = terms.next()) != null ) {
+      observed.add(decodeInteger(term.utf8ToString()));
     }
     assertEquals(new HashSet<Integer>(Arrays.asList(new Integer[]{hash("hel", 1234), 
                                                                   hash("elp", 1234),
@@ -94,15 +126,14 @@ public class TestHashedNGramAnalyzer {
   @Test public void createDcumentAndSearch() throws IOException, ParseException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new HashedNGramAnalyzer(3, 4, 1234)));
     writer.addDocument(newDocument("title", "help"));
     writer.commit();
-    writer.optimize();
     writer.close();
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
-    HashedNGramTokenizer tk = new HashedNGramTokenizer(null, 3, 4, 1234);
+    HashedNGramTokenizer tk = new HashedNGramTokenizer(new StringReader(""), 3, 4, 1234); // dummy
     Query query = new TermQuery(new Term("title", tk.encodeIntegerAsString(tk.hashString("hel"))));
     final int[] hit = new int []{-1};
     searcher.search(query, new Collector() {
@@ -120,8 +151,8 @@ public class TestHashedNGramAnalyzer {
           hit[0] = doc;
         }
         
-        public void setNextReader(IndexReader reader, int docBase) {
-          this.docBase = docBase;
+        public void setNextReader(AtomicReaderContext context) {
+          this.docBase = context.docBase;
         }
       });
     assertEquals(0, hit[0]);
@@ -130,7 +161,7 @@ public class TestHashedNGramAnalyzer {
   @Test public void createDcumentAndSearchPhrase() throws IOException, ParseException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new HashedNGramAnalyzer(3, 5, 1234)));
     writer.addDocument(newDocument("title", "help page 1"));
     writer.addDocument(newDocument("title", "help page 2"));
@@ -138,12 +169,11 @@ public class TestHashedNGramAnalyzer {
     writer.addDocument(newDocument("title", "page 1"));
     writer.addDocument(newDocument("title", "help"));
     writer.commit();
-    writer.optimize();
     writer.close();
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     System.err.println("query");
-    QueryParser parser = new QueryParser(Version.LUCENE_36, "title", new HashedNGramAnalyzer(3, 5, 1234));
+    QueryParser parser = new QueryParser(Version.LUCENE_44, "title", new HashedNGramAnalyzer(3, 5, 1234));
     parser.setDefaultOperator(QueryParser.AND_OPERATOR);
     Query query = parser.parse("\"help page\"~2");
     final Set<Integer> hits = new HashSet<Integer>();
@@ -162,8 +192,8 @@ public class TestHashedNGramAnalyzer {
           hits.add(doc);
         }
         
-        public void setNextReader(IndexReader reader, int docBase) {
-          this.docBase = docBase;
+        public void setNextReader(AtomicReaderContext context) {
+          this.docBase = context.docBase;
         }
       });
     assertEquals(3, hits.size());

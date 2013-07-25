@@ -74,8 +74,6 @@ public class Indexer {
 													+ " msecs (" + prodq.size() + " pooled)");
 							Thread.sleep(reportInterval);
 						}
-					} catch (IOException e) {
-						e.printStackTrace();
 					} catch (InterruptedException e) {
 						// do nothing
 					}
@@ -161,12 +159,9 @@ public class Indexer {
 		// setup the writer configuration
 		Directory dir = new NIOFSDirectory(new File(indexDir), null);
 		LogDocMergePolicy lmp = new LogDocMergePolicy();
-		lmp.setUseCompoundFile(true); // This might fix the too many open files,
-		// see
-		// http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
-
-		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_36,
+		IndexWriterConfig cfg = new IndexWriterConfig(Version.LUCENE_44,
 																									RevDiffSearchUtils.getAnalyzer());
+		cfg.setUseCompoundFile(true); // This might fix the too many open files, see http://wiki.apache.org/lucene-java/LuceneFAQ#Why_am_I_getting_an_IOException_that_says_.22Too_many_open_files.22.3F
 		cfg.setOpenMode(OpenMode.CREATE_OR_APPEND); // http://lucene.apache.org/java/3_2_0/api/core/org/apache/lucene/index/IndexWriterConfig.OpenMode.html#CREATE_OR_APPEND
 		cfg.setRAMBufferSizeMB(ramBufferSizeMB);
 		cfg.setMergePolicy(lmp);

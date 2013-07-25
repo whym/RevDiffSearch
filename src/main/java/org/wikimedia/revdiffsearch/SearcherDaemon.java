@@ -20,15 +20,17 @@ import java.util.regex.Matcher;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.DirectoryReader;
 
 import org.jboss.netty.util.CharsetUtil;
 import org.jboss.netty.bootstrap.ServerBootstrap;
@@ -70,7 +72,7 @@ public class SearcherDaemon implements Runnable {
 	private final int threads;
 
 	public SearcherDaemon(InetSocketAddress address, String dir, final QueryParser parser, int threads) throws IOException {
-		this(address, new IndexSearcher(IndexReader.open(FSDirectory.open(new File(dir)))), parser, threads);
+		this(address, new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(dir)))), parser, threads);
 	}
 
 	public SearcherDaemon(InetSocketAddress address, IndexSearcher searcher, final QueryParser parser, int threads) throws IOException {
@@ -80,7 +82,7 @@ public class SearcherDaemon implements Runnable {
 		this.parser.setDefaultOperator(QueryParser.AND_OPERATOR);
 		this.startTimeMillis = System.currentTimeMillis();
 		this.threads = threads;
-		logger.info("given the index containing " + searcher.maxDoc() + " entries");
+		logger.info("given the index containing " + searcher.getIndexReader().maxDoc() + " entries");
 	}
 	
 	@Override public void run() {
@@ -160,7 +162,12 @@ public class SearcherDaemon implements Runnable {
 				Document doc = this.searcher.doc(i);
 				JSONArray array = new JSONArray();
 				for ( String f: fields ) {
-					array.put(StringEscapeUtils.unescapeJava(doc.getField(f).stringValue()));
+					IndexableField field = doc.getField(f);
+					if ( field == null ) {
+						array.put("null field: " + f);
+					} else {
+						array.put(StringEscapeUtils.unescapeJava(field.stringValue()));
+					}
 				}
 				ret.put(array);
 			}
@@ -188,7 +195,7 @@ public class SearcherDaemon implements Runnable {
 				JSONObject ret = new JSONObject();
 
 				ret.put("hits_all", hits.cardinality());
-				ret.put("parsed_query", this.parser.parse(query));
+				ret.put("parsed_query", this.parser.parse(query).toString());
 
 				List<String> fields = new ArrayList<String>();
 				if ( fields_ == null ) {
@@ -291,7 +298,7 @@ public class SearcherDaemon implements Runnable {
 		logger.info("using " + threads + " threads");
 		new SearcherDaemon(new InetSocketAddress(port),
 											 dir,
-											 new QueryParser(Version.LUCENE_36, "added", RevDiffSearchUtils.getAnalyzer()),
+											 new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzer()),
 											 threads).run();
   }
 }

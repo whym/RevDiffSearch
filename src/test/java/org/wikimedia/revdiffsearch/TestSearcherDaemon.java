@@ -9,7 +9,7 @@ import org.apache.lucene.analysis.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.document.*;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.util.Version;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -87,23 +87,23 @@ public class TestSearcherDaemon {
   @Test public void smallDocuments() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
 
-    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 3)).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))), 3)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
-    // query "/Todo" and receive rev_ids
+    // query "\"/Todo\"" and receive rev_ids
     {
       JSONObject q = new JSONObject();
-      q.put("q", "/Todo");
+      q.put("q", "\"/Todo\"");
       q.put("fields", "rev_id");
       JSONObject json = retrieve(address, q);
       System.err.println(json);//!
@@ -127,16 +127,16 @@ public class TestSearcherDaemon {
   @Test public void smallDocumentsComplexQueries() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
 
-    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 1)).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -147,6 +147,7 @@ public class TestSearcherDaemon {
       q.put("fields", "rev_id");
       JSONObject json = retrieve(address, q);
       System.err.println(json);//!
+      assertEquals("+namespace:0 +page_id:12", json.getString("parsed_query"));
       assertEquals(1, json.getInt("hits_all"));
       assertEquals(18201, json.getJSONArray("hits").getJSONArray(0).getInt(0));
     }
@@ -155,7 +156,7 @@ public class TestSearcherDaemon {
   @Test public void smallDocumentsWithCollapsedHits() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new SimpleNGramAnalyzer(1)));
     Indexer indexer = new Indexer(writer, 2, 10, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -163,16 +164,16 @@ public class TestSearcherDaemon {
                                        "18210	12	0	'Anarchism'	1014749333	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
 
-    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(1)), 1)).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(1))), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
-    // query "/Todo" and receive rev_ids monthly
+    // query "\"/Todo\"" and receive rev_ids monthly
     {
       JSONObject q = new JSONObject();
-      q.put("q", "/Todo");
+      q.put("q", "\"/Todo\"");
       q.put("fields", "rev_id");
       q.put("collapse_hits", "month");
       JSONObject json = retrieve(address, q);
@@ -182,10 +183,10 @@ public class TestSearcherDaemon {
       assertEquals(18201,     json.getJSONArray("hits").getJSONArray(0).getJSONArray(1).getJSONArray(0).getInt(0));
       assertEquals(18210,     json.getJSONArray("hits").getJSONArray(0).getJSONArray(1).getJSONArray(1).getInt(0));
     }
-    // query "/Todo" and receive rev_ids daily
+    // query "\"/Todo\"" and receive rev_ids daily
     {
       JSONObject q = new JSONObject();
-      q.put("q", "/Todo");
+      q.put("q", "\"/Todo\"");
       q.put("fields", "rev_id");
       q.put("collapse_hits", "day");
       JSONObject json = retrieve(address, q);
@@ -196,10 +197,10 @@ public class TestSearcherDaemon {
       assertEquals(18201,        json.getJSONArray("hits").getJSONArray(0).getJSONArray(1).getJSONArray(0).getInt(0));
       assertEquals(18210,        json.getJSONArray("hits").getJSONArray(1).getJSONArray(1).getJSONArray(0).getInt(0));
     }
-    // query "/Todo" and receive daily counts
+    // query "\"/Todo\"" and receive daily counts
     {
       JSONObject q = new JSONObject();
-      q.put("q", "/Todo");
+      q.put("q", "\"/Todo\"");
       q.put("collapse_hits", "day");
       JSONObject json = retrieve(address, q);
       assertEquals(2, json.getInt("hits_all"));
@@ -214,16 +215,16 @@ public class TestSearcherDaemon {
   private static void phraseQuery(Analyzer analyzer) throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                analyzer));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Title1'	980043141	u'comment1'	False	99	u'uname1'	0:1:u' subject cover \n'q" +
                                        "18201	12	0	'Title2'	1014649222	u'comment2'	True	None	u'uname2'	9230:1:u'This covers subject to'\n"));
     indexer.finish();
 
-    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", analyzer), 1)).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", analyzer), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -250,7 +251,7 @@ public class TestSearcherDaemon {
   }
 
   @Test public void phraseQueryWithSimpleNGramAnalysis() throws IOException, JSONException, InterruptedException {
-    phraseQuery(new SimpleNGramAnalyzer(3));
+    phraseQuery(RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3)));
   }
 
   // TODO: NGramTokenizer needs to be changed similarly to HashedNGramTokenzer to be consistent with the index word positions
@@ -259,13 +260,13 @@ public class TestSearcherDaemon {
   // }
 
   @Test public void phraseQueryWithHashedNGramAnalysis() throws IOException, JSONException, InterruptedException {
-    phraseQuery(new HashedNGramAnalyzer(1, 2, 9876));
+    phraseQuery(RevDiffSearchUtils.getAnalyzerCombined(new HashedNGramAnalyzer(1, 2, 9876)));
   }
 
   @Test public void operatorQueryOR() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -273,9 +274,9 @@ public class TestSearcherDaemon {
                                        "12345	10	0	'Accessiblecomputing'	1980043141	u'*'	False	99	u'Automated conversion'	0:1:u'[[fr:ABC]]\\n'"));
     indexer.finish();
 
-    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 1)).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 
@@ -297,7 +298,7 @@ public class TestSearcherDaemon {
   @Test public void operatorQueryWildcard() throws IOException, JSONException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
+                                         new IndexWriterConfig(Version.LUCENE_44,
                                                                new SimpleNGramAnalyzer(3)));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
@@ -305,9 +306,9 @@ public class TestSearcherDaemon {
                                        "12345	10	0	'Accessiblecomputing'	1980043141	u'*'	False	99	u'Automated conversion'	0:1:u'[[fr:ABC]]\\n'"));
     indexer.finish();
 
-    IndexSearcher searcher = new IndexSearcher(IndexReader.open(dir));
+    IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
     InetSocketAddress address = findFreeAddress();
-    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3)), 1)).start();
+    new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))), 1)).start();
 
     assertTrue(waitUntilPrepared(address, 1000L));
 

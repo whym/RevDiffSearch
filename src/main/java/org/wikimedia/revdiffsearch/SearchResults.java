@@ -1,8 +1,8 @@
 package org.wikimedia.revdiffsearch;
 
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import java.util.BitSet;
 import java.io.IOException;
 

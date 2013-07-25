@@ -1,9 +1,8 @@
 package org.wikimedia.revdiffsearch;
 
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
-import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.KeywordTokenizer;
+import org.apache.lucene.util.Version;
 import java.io.Reader;
 
 public class NGramAnalyzer extends Analyzer {
@@ -31,16 +30,10 @@ public class NGramAnalyzer extends Analyzer {
 		this.maxN = maxN;
 	}
 
-	public final TokenStream tokenStream(String field, final Reader reader) {
-		if ( SearchProperty.getInstance().getProperty(field).isAnalyzed() ) {
-			return new NGramTokenizer(reader, this.minN, this.maxN);
-		} else {
-			return new KeywordTokenizer(reader);
-		}
+  @Override protected TokenStreamComponents createComponents(String field, Reader reader) {
+		return new TokenStreamComponents(new NGramTokenizer(Version.LUCENE_44, reader, this.minN, this.maxN));
 	}
-	public final TokenStream reusableTokenStream(String field, final Reader reader) {
-		return tokenStream(field, reader);
-	}
+
 }
 
 /*

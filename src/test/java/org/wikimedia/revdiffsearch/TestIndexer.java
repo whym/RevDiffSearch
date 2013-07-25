@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 public class TestIndexer {
   private static abstract class MyHitCollector extends Collector {
     public boolean acceptsDocsOutOfOrder() { return true; }
-    public void setNextReader(IndexReader reader, int docBase) {}
+    public void setNextReader(AtomicReaderContext context) {}
     public void setScorer(Scorer scorer) {}
     public abstract void collect(final int docid);
   }
@@ -32,18 +32,12 @@ public class TestIndexer {
   private static int findDocument(IndexSearcher searcher, Term queryterm) throws IOException {
     try {
       final int[] found = new int[]{-1};
-      try {
-        searcher.search(new TermQuery(queryterm), new MyHitCollector(){
-            public void collect(final int doc) {
-              found[0] = doc;
-            }
-          });
-        return found[0];
-      } catch (RuntimeException e) {
-        return found[0];
-      } finally {
-        searcher.close();
-      }
+      searcher.search(new TermQuery(queryterm), new MyHitCollector(){
+          public void collect(final int doc) {
+            found[0] = doc;
+          }
+        });
+      return found[0];
     } catch (FileNotFoundException e) {
       return -1;
     }
@@ -56,14 +50,14 @@ public class TestIndexer {
   @Test public void smallDocuments() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
-                                                               new SimpleNGramAnalyzer(3)));
+                                         new IndexWriterConfig(Version.LUCENE_44,
+                                                               RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))));
     Indexer indexer = new Indexer(writer, 2, 2, 100);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
 
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     assertEquals(2, reader.numDocs());
     assertEquals("Accessiblecomputing", reader.document(findDocument(searcher, new Term("rev_id", "233192"))).get("title"));
@@ -76,15 +70,15 @@ public class TestIndexer {
   @Test public void smallDocumentsOverwrite() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
-                                                               new SimpleNGramAnalyzer(3)));
+                                         new IndexWriterConfig(Version.LUCENE_44,
+                                                               RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))));
     Indexer indexer = new Indexer(writer, 2, 2, 100, true);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	3	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.indexDocuments(newTempFile("233192	10	1	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n"));
     indexer.finish();
 
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     assertEquals(2, reader.numDocs());
     assertEquals("1", reader.document(findDocument(searcher, new Term("rev_id", "233192"))).get("namespace"));
@@ -94,15 +88,15 @@ public class TestIndexer {
   @Test public void smallDocumentsDuplicate() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
-                                                               new SimpleNGramAnalyzer(3)));
+                                         new IndexWriterConfig(Version.LUCENE_44,
+                                                               RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))));
     Indexer indexer = new Indexer(writer, 2, 2, 100, false);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	3	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.indexDocuments(newTempFile("233192	10	1	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n"));
     indexer.finish();
 
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     assertEquals(3, reader.numDocs());
     assertEquals("Automated conversion", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("comment"));
@@ -111,14 +105,14 @@ public class TestIndexer {
   @Test public void smallDocumentsFiltered() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
-                                                               new SimpleNGramAnalyzer(3)));
+                                         new IndexWriterConfig(Version.LUCENE_44,
+                                                               RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))));
     Indexer indexer = new Indexer(writer, 2, 2, 100, true, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	3	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
 
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     assertEquals(1, reader.numDocs());
     assertEquals("3", reader.document(findDocument(searcher, new Term("rev_id", "18201"))).get("namespace"));
@@ -128,14 +122,14 @@ public class TestIndexer {
   @Test public void smallDocumentsFilteredNoResults() throws IOException, InterruptedException {
     Directory dir = new RAMDirectory();
     IndexWriter writer = new IndexWriter(dir,
-                                         new IndexWriterConfig(Version.LUCENE_36,
-                                                               new SimpleNGramAnalyzer(3)));
+                                         new IndexWriterConfig(Version.LUCENE_44,
+                                                               RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3))));
     Indexer indexer = new Indexer(writer, 2, 4, 100, true, DiffDocumentProducer.Filter.PASS_TALK_NAMESPACE_ONLY);
     indexer.indexDocuments(newTempFile("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
                                        "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n"));
     indexer.finish();
 
-    IndexReader reader = IndexReader.open(dir);
+    IndexReader reader = DirectoryReader.open(dir);
     IndexSearcher searcher = new IndexSearcher(reader);
     assertEquals(0, reader.numDocs());
   }

@@ -15,8 +15,9 @@ import org.apache.lucene.util.Version;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
 
@@ -53,7 +54,7 @@ public class DiffCollector extends Collector implements SearchResults {
     final Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
     final Map<String,Set<String>> rem = new HashMap<String,Set<String>>();
     try {
-      QueryParser ps = new QueryParser(Version.LUCENE_36, "added", new CallbackAnalyzer(new CallbackAnalyzer.Callback() {
+      QueryParser ps = new QueryParser(Version.LUCENE_44, "added", new CallbackAnalyzer(new CallbackAnalyzer.Callback() {
           public void execute(String field, String value) {
             assert value.length() > 0;
 
@@ -94,8 +95,8 @@ public class DiffCollector extends Collector implements SearchResults {
     return true;
   }
   
-  public void setNextReader(IndexReader reader, int docBase) {
-    this.docBase = docBase;
+  public void setNextReader(AtomicReaderContext context) {
+    this.docBase = context.docBase;
   }
   
   public void setScorer(Scorer scorer) {

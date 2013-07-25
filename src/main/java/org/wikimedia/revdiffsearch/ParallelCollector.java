@@ -13,6 +13,8 @@ import java.util.BitSet;
 
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.AtomicReader;
+import org.apache.lucene.index.AtomicReaderContext;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -38,9 +40,8 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.analysis.Analyzer;
 
 public class ParallelCollector implements SearchResults {
@@ -67,7 +68,8 @@ public class ParallelCollector implements SearchResults {
   public void issue(String query, QueryParser parser) throws ParseException, IOException {
     Query q = parser.parse(query);
     List<InnerCollector> collectors = new ArrayList<InnerCollector>();
-    for (IndexReader reader: this.searcher.getSubReaders()) {
+    for (AtomicReaderContext context: this.searcher.getIndexReader().getContext().leaves()) {
+      AtomicReader reader = context.reader();
       IndexSearcher srch = new IndexSearcher(reader);
       InnerCollector c = new InnerCollector(srch, this.maxRevs);
       collectors.add(c);

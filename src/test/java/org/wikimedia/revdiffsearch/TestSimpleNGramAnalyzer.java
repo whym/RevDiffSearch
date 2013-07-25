@@ -15,6 +15,7 @@ public class TestSimpleNGramAnalyzer {
     CharTermAttribute term = (CharTermAttribute)ts.addAttribute(CharTermAttribute.class);
     List<Integer> increments = new ArrayList<Integer>();
     List<String> ngrams = new ArrayList<String>();
+    ts.reset();
     while (ts.incrementToken()) {
       ngrams.add(term.toString());
       increments.add(posIncr.getPositionIncrement());

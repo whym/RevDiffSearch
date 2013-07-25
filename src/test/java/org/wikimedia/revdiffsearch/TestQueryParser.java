@@ -5,8 +5,8 @@ import static org.junit.Assert.*;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.queryParser.QueryParser;
-import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.util.Version;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,9 +16,9 @@ public class TestQueryParser {
 	public QueryParser qp; 
 	
 	public TestQueryParser() throws ParseException {
-		this.qp = new QueryParser(Version.LUCENE_36, "added", new SimpleNGramAnalyzer(3));
+		this.qp = new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(new SimpleNGramAnalyzer(3)));
 	}
-	
+
 	@Test
 	public void testQueryNoExplicitField() throws ParseException {
 		String querystr = "foo";
@@ -105,5 +105,5 @@ public class TestQueryParser {
 		Query query = qp.parse(querystr);
 		assertEquals("added:foo -added:bar (added:bea added:ear) (added:bee added:eer)", query.toString());
 	}
-
+	
 }

@@ -1,27 +1,30 @@
 package org.wikimedia.revdiffsearch;
 
-import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.tokenattributes.*;
 import java.io.Reader;
 import java.io.IOException;
 
-public class SimpleNGramTokenizer extends TokenStream {
+public class SimpleNGramTokenizer extends Tokenizer {
+  private final CharTermAttribute termAttr = addAttribute(CharTermAttribute.class);
   private final int n;
-  private final Reader reader;
   private CharSequence buff;
   private int endpos;
-  private CharTermAttribute termAttr;
   
   public SimpleNGramTokenizer(Reader reader, int n) {
+		super(reader);
     this.n = n;
-    this.reader = reader;
-    this.buff = readAll(reader);
-    this.endpos = n;
-    this.termAttr = (CharTermAttribute) addAttribute(CharTermAttribute.class);
   }
   
-  public final boolean incrementToken() {
+  @Override public final boolean incrementToken() {
+		if ( this.buff == null ) {
+			try {
+				this.reset();
+			} catch ( IOException e ) {
+				throw new IllegalArgumentException("fail to read", e);
+			}
+		}
     if (this.endpos > buff.length()) {
       return false;
     }
@@ -30,19 +33,21 @@ public class SimpleNGramTokenizer extends TokenStream {
     ++this.endpos;
     return true;
   }
+
+	@Override public void reset() throws IOException {
+		super.reset();
+		this.buff = readAll(input);
+		this.endpos = this.n;
+	}
   
-  private static CharSequence readAll(Reader reader) {
-    try {
-      StringBuffer buff = new StringBuffer();
-      char[] buffb = new char[4096];
-      int len;
-      while ((len = reader.read(buffb)) > 0) {
-        buff.append(buffb, 0, len);
-      }
-      return buff.toString();
-    } catch (IOException e) {
-      throw new RuntimeException(e.toString());
-    }
+  private static CharSequence readAll(Reader reader) throws IOException {
+		StringBuffer buff = new StringBuffer();
+		char[] buffb = new char[4096];
+		int len;
+		while ((len = reader.read(buffb)) > 0) {
+			buff.append(buffb, 0, len);
+		}
+		return buff.toString();
   }
 }
 
