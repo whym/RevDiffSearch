@@ -42,6 +42,7 @@ class SearcherDaemonSpec extends FunSpec {
     val ret = JM.parse(io.Source.fromInputStream(socket.getInputStream).mkString)
     writer.close
     socket.close
+    info(JM.compact(JM.render(ret)))
     ret
   }
 
@@ -97,15 +98,15 @@ class SearcherDaemonSpec extends FunSpec {
   def n3daemon(doc: String) = daemon(new SimpleNGramAnalyzer(3), doc)
 
 
-  describe("SearcherDaemon with a small set of documents") {
+  describe("SearcherDaemon with two small documents") {
 
-    val d = n3daemon("233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'\n" +
-                                       "18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'\n")
+    val d = n3daemon("""233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'
+18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'
+""")
       
     it("should process simple string queries to get rev_ids") {
       val q = ("q" -> "\"/Todo\"")~("fields" -> "rev_id")
       val json = retrieve(d.address, q)
-      info(JM.compact(JM.render(json)))
       assert(JInt(1) == (json \ "hits_all"))
       assert(JString("18201") == (json \ "hits")(0)(0))
     }
@@ -113,7 +114,6 @@ class SearcherDaemonSpec extends FunSpec {
     it("shout get rev_ids and timestamps") {
       val q = ("q" -> "\"* Legal\"") ~ ("fields" -> List("rev_id", "timestamp"))
       val json = retrieve(d.address, q)
-      info(JM.compact(JM.render(json)))
       assert(JInt(1) == (json \ "hits_all"))
       assert(JString("233192") ==
         (json \ "hits")(0)(0))
@@ -124,12 +124,35 @@ class SearcherDaemonSpec extends FunSpec {
     it("should process namespace and page_id -specifying queries") {
       val q = ("q" -> "namespace:0 page_id:12") ~ ("fields" -> "rev_id")
       val json = retrieve(d.address, q)
-      info(JM.compact(JM.render(json)))
       assert(JString("+namespace:0 +page_id:12") ==
         (json \ "parsed_query"))
       assert(JInt(1) ==
         (json \ "hits_all"))
       assert(JString("18201") == (json \ "hits")(0)(0))
+    }
+
+  }
+
+  describe("SearcherDaemon with three small documents") {
+
+    val d = n3daemon("""233192	10	0	'Accessiblecomputing'	980043141	u'*'	False	99	u'RoseParks'	0:1:u'This subject covers\\n\\n* AssistiveTechnology\\n\\n* AccessibleSoftware\\n\\n* AccessibleWeb\\n\\n* LegalIssuesInAccessibleComputing\\n\\n'
+18201	12	0	'Anarchism'	1014649222	u'Automated conversion'	True	None	u'Conversion script'	9230:1:u'[[talk:Anarchism|'	9252:1:u']]'	9260:1:u'[[Anarchism'	9276:1:u'|/Todo]]'	9292:1:u'talk:'	9304:-1:u'/Talk'	9464:1:u'\\n'
+12345	10	0	'Accessiblecomputing'	1980043141	u'*'	False	99	u'Automated conversion'	0:1:u'[[fr:ABC]]\\n'
+""")
+
+    it("should process OR queries") {
+      val q = ("q" -> "rev_id:12345 OR page_id:12") ~ ("fields", "rev_id")
+      val json = retrieve(d.address, q)
+      assert(JInt(2) == (json \ "hits_all"))
+      assert(Set(JString("12345"), JString("18201")) ==
+        Set((json \ "hits")(0)(0), (json \ "hits")(1)(0)))
+    }
+
+    it("should process '?' queries") {
+      val q = ("q" -> "namespace:0 AND NOT \\[\\[?") ~ ("fields", "rev_id")
+      val json = retrieve(d.address, q)
+      assert(JInt(1) == json \ "hits_all")
+      assert(JString("233192") == (json \ "hits")(0)(0))
     }
 
   }
