@@ -50,7 +50,7 @@ public class DiffCollector extends Collector implements SearchResults {
     this.prepare(query, parser);
     this.searcher.search(parsed, this);
   }
-  protected static Map<String,Set<String>> getQueryFields(final String query) {
+  public static Map<String,Set<String>> getQueryFields(final String query) {
     final Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
     final Map<String,Set<String>> rem = new HashMap<String,Set<String>>();
     try {

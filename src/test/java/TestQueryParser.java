@@ -1,4 +1,4 @@
-package org.wikimedia.revdiffsearch;
+import org.wikimedia.revdiffsearch.*;
 
 import static org.junit.Assert.*;
 

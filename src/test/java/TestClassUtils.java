@@ -1,4 +1,4 @@
-package org.wikimedia.revdiffsearch;
+import org.wikimedia.revdiffsearch.*;
 import org.junit.*;
 import java.io.*;
 import java.util.*;
@@ -39,13 +39,13 @@ public class TestClassUtils {
 
   @Test public void testNewInstanceOfWithStringArguments() {
     assertEquals(Arrays.asList(new String[]{"a"}),
-                 ClassUtils.newInstanceOf("org.wikimedia.revdiffsearch.TestClassUtils$MyCollection(a)", Arrays.asList(new String[]{"fail"}),
+                 ClassUtils.newInstanceOf("TestClassUtils$MyCollection(a)", Arrays.asList(new String[]{"fail"}),
                                           Collection.class));
     assertEquals(Arrays.asList(new String[]{"xy"}),
-                 ClassUtils.newInstanceOf("org.wikimedia.revdiffsearch.TestClassUtils$MyCollection(x,y)", Arrays.asList(new String[]{"fail"}),
+                 ClassUtils.newInstanceOf("TestClassUtils$MyCollection(x,y)", Arrays.asList(new String[]{"fail"}),
                                           Collection.class));
     assertEquals(Arrays.asList(new String[]{"fail"}),
-                 ClassUtils.newInstanceOf("org.wikimedia.revdiffsearch.TestClassUtils$MyCollectionX(a)", Arrays.asList(new String[]{"fail"}),
+                 ClassUtils.newInstanceOf("TestClassUtils$MyCollectionX(a)", Arrays.asList(new String[]{"fail"}),
                                           Collection.class));
   }
 
