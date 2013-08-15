@@ -13,8 +13,7 @@ scalacOptions ++= Seq("-deprecation",
                       "-explaintypes",
                       "-g:line")
 
-javacOptions ++= Seq("-g",
-                     "-Xlint:unchecked")
+javacOptions ++= Seq("-Xlint:unchecked")
 
 libraryDependencies ++= Seq(
   "org.json4s"        %% "json4s-native" % "3.2.4",
@@ -37,14 +36,12 @@ libraryDependencies ++= Seq(
 
 seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
 
-mainClass in (Compile, run) := Some("org.whym.revdiffsearch.Indexer")
+mainClass in (Compile, run) := Some("org.wikimedia.revdiffsearch.Indexer")
 
-mainClass in oneJar := Some("org.whym.revdiffsearch.Indexer")
+mainClass in oneJar := Some("org.wikimedia.revdiffsearch.Indexer")
 
 publishMavenStyle := true
 
 resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
-
-resolvers += "Local Ivy Repository" at "file://"+Path.userHome.absolutePath+"/.ivy2/cache"
 
 publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
