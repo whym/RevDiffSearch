@@ -1,4 +1,6 @@
 // -*- mode: scala -*-
+import AssemblyKeys._
+
 organization := "org.whym"
 
 name    := "revdiffsearch"
@@ -12,8 +14,6 @@ scalacOptions ++= Seq("-deprecation",
                       "-optimise",
                       "-explaintypes",
                       "-g:line")
-
-javacOptions ++= Seq("-Xlint:unchecked")
 
 libraryDependencies ++= Seq(
   "org.json4s"        %% "json4s-native" % "3.2.4",
@@ -36,9 +36,13 @@ libraryDependencies ++= Seq(
 
 seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
 
+assemblySettings
+
 mainClass in (Compile, run) := Some("org.wikimedia.revdiffsearch.Indexer")
 
 mainClass in oneJar := Some("org.wikimedia.revdiffsearch.Indexer")
+
+mainClass in assembly := Some("org.wikimedia.revdiffsearch.Indexer")
 
 publishMavenStyle := true
 
