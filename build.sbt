@@ -25,7 +25,7 @@ libraryDependencies ++= Seq(
                                          % "4.4.0",
   "org.apache.lucene"  % "lucene-queryparser"
                                          % "4.4.0",
-  "org.jboss.netty"    % "netty"         % "3.2.7.Final",
+  "io.netty"           % "netty-all"     % "4.0.7.Final",
   "org.json"           % "json"          % "20090211",
   "org.apache.commons" % "commons-lang3" % "3.1",
   "ch.qos.logback"     % "logback-classic" % "1.0.7",

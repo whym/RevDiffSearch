@@ -32,26 +32,25 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.DirectoryReader;
 
-import org.jboss.netty.util.CharsetUtil;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.handler.codec.string.StringDecoder;
-import org.jboss.netty.handler.codec.string.StringEncoder;
-import org.jboss.netty.handler.codec.frame.DelimiterBasedFrameDecoder;
-import org.jboss.netty.handler.codec.frame.Delimiters;
+import io.netty.util.CharsetUtil;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.Delimiters;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -86,28 +85,37 @@ public class SearcherDaemon implements Runnable {
 	}
 	
 	@Override public void run() {
-    ServerBootstrap bootstrap = new ServerBootstrap
-      (new NioServerSocketChannelFactory
-       (Executors.newCachedThreadPool(),
-        Executors.newCachedThreadPool()));
-    
-    bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-        @Override
-          public ChannelPipeline getPipeline() throws Exception {
-          ChannelPipeline pipeline = Channels.pipeline();
-					pipeline.addLast("framer", new DelimiterBasedFrameDecoder(RevDiffSearchUtils.getProperty("maxQueryLength", 100000), Delimiters.lineDelimiter()));
-					pipeline.addLast("decoder", new StringEncoder(CharsetUtil.UTF_8));
-					pipeline.addLast("encoder", new StringDecoder(CharsetUtil.UTF_8));
-					pipeline.addLast("handler", new SearcherHandler(searcher, parser, threads));
-          return pipeline;
+		EventLoopGroup bossGroup = new NioEventLoopGroup();
+		EventLoopGroup workerGroup = new NioEventLoopGroup();
+		try {
+			ServerBootstrap bootstrap = new ServerBootstrap();
+			
+			bootstrap.group(bossGroup, workerGroup)
+				.channel(NioServerSocketChannel.class)
+				.handler(new LoggingHandler(LogLevel.INFO))
+				.childHandler(new ChannelInitializer<SocketChannel>() {
+						@Override
+							public void initChannel(SocketChannel ch) throws Exception {
+							ChannelPipeline pipeline = ch.pipeline();
+							pipeline.addLast("framer", new DelimiterBasedFrameDecoder(RevDiffSearchUtils.getProperty("maxQueryLength", 100000), Delimiters.lineDelimiter()));
+							pipeline.addLast("decoder", new StringEncoder(CharsetUtil.UTF_8));
+							pipeline.addLast("encoder", new StringDecoder(CharsetUtil.UTF_8));
+							pipeline.addLast("handler", new SearcherHandler(searcher, parser, threads));
         }
       });
     
-    bootstrap.bind(this.address);
-		logger.info("SearcherDaemon is launched in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - this.startTimeMillis) + " at " + this.address);
+			ChannelFuture f = bootstrap.bind(this.address).sync();
+			logger.info("SearcherDaemon is launched in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - this.startTimeMillis) + " at " + this.address);
+			f.channel().closeFuture().sync();
+		} catch (InterruptedException e) {
+			logger.warning("interrupted");
+		} finally {
+			bossGroup.shutdownGracefully();
+			workerGroup.shutdownGracefully();
+		}
 	}
 
-  public static class SearcherHandler extends SimpleChannelUpstreamHandler {
+  public static class SearcherHandler extends SimpleChannelInboundHandler<String> {
     private final IndexSearcher searcher;
     private final QueryParser parser;
 		private final int threads;
@@ -117,14 +125,6 @@ public class SearcherDaemon implements Runnable {
       this.parser = parser;
 			this.threads = threads;
     }
-
-
-		@Override	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-			if (e instanceof ChannelStateEvent) {
-				logger.info(e.toString());
-			}
-			super.handleUpstream(ctx, e);
-		}
 
 		private JSONArray writeCollapsedHitsByTimestamp(BitSet hits, List<String> fields, Pattern pattern) throws IOException, JSONException {
 			Map<String, JSONArray> map = new TreeMap<String, JSONArray>();
@@ -174,11 +174,10 @@ public class SearcherDaemon implements Runnable {
 			return ret;
 		}
 
-    @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
+		@Override
+			public void channelRead0(ChannelHandlerContext ctx, String qstr) {
 			long processingStartMillis = System.currentTimeMillis();
 			try {
-				String qstr = (String)e.getMessage();
 				logger.info("received query: " + qstr + " at " + ctx);
 				JSONObject qobj = new JSONObject(qstr);
 				logger.info("received query (JSON): " + qobj.toString(2) + " at " + ctx);
@@ -244,35 +243,29 @@ public class SearcherDaemon implements Runnable {
 
 				ret.put("elapsed", System.currentTimeMillis() - processingStartMillis);
 				String str = ret.toString();
-				ChannelFuture f = e.getChannel().write(str);
+				ChannelFuture f = ctx.write(str);
 				logger.info("responded in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - processingStartMillis) + " (" + str.length() + " characters)");
 				f.addListener(new ChannelFutureListener() {
             public void operationComplete(ChannelFuture future) {
-							Channel ch = future.getChannel();
+							Channel ch = future.channel();
 							ch.close();
 							logger.info("connection closed");
             }
         });
       } catch (IOException ex) {
-        e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
+        ctx.write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
 				ex.printStackTrace();
       } catch (JSONException ex) {
-        e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
+        ctx.write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
 				ex.printStackTrace();
       } catch (ParseException ex) {
-        e.getChannel().write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
+        ctx.write("{\"exception\": \"" + StringEscapeUtils.escapeJava(ex.toString()) + "\"}\n");
 				ex.printStackTrace();
-      }
+      } finally {
+				ctx.flush();
+			}
     }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-      logger.log(Level.WARNING,
-                 "Unexpected exception from downstream.",
-                 e.getCause());
-      e.getChannel().close();
-    }
-  }
+	}
 
   public static void main(String[] args) throws IOException {
 		if ( args.length < 1 ) {
