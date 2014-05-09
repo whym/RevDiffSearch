@@ -1,18 +1,19 @@
 // -*- mode: scala -*-
 import AssemblyKeys._
 
-organization := "org.whym"
+organization := "org.wikimedia"
 
 name    := "revdiffsearch"
 
 version := "0.2"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.4"
 
 scalacOptions ++= Seq("-deprecation",
                       "-unchecked",
                       "-optimise",
                       "-explaintypes",
+                      "-Xmax-classfile-name", "255",
                       "-g:line")
 
 libraryDependencies ++= Seq(
