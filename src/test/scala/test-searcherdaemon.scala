@@ -78,7 +78,7 @@ class SearcherDaemonSpec extends FunSpec {
   Logger.getLogger(classOf[Indexer].getName()).setLevel(Level.WARNING);
 
 
-  def daemon(analyzer: Analyzer, doc: String) = {
+  def daemon(analyzer: Analyzer, doc: String, http: Boolean=false) = {
     new {
       val dir = new RAMDirectory()
       val writer = new IndexWriter(dir,
@@ -90,7 +90,7 @@ class SearcherDaemonSpec extends FunSpec {
       
       val searcher = new IndexSearcher(DirectoryReader.open(dir))
       val address = findFreeAddress()
-      new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(analyzer)), 1)).start()
+      new Thread(new SearcherDaemon(address, searcher, new QueryParser(Version.LUCENE_44, "added", RevDiffSearchUtils.getAnalyzerCombined(analyzer)), 1, http)).start()
       waitUntilPrepared(address, 1000L)
     }
   }
