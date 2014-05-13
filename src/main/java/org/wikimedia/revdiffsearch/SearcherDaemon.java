@@ -206,8 +206,10 @@ public class SearcherDaemon implements Runnable {
 				String					hitsper = "no"; // no or day or month
 				int							maxrevs = 1000; // 
 				String					version = "0.1"; // 
+				String          format = "json";
 				List<String> fields = new ArrayList<String>();
 				JSONObject qobj = new JSONObject();
+				String callback = "";
 				if ( msg instanceof String ) {
 					JSONArray				fields_; // the fields to be given in the output. if empty, only number of hits will be emitted
 					String qstr = (String)msg;
@@ -220,6 +222,7 @@ public class SearcherDaemon implements Runnable {
 					maxrevs = qobj.optInt("max_revs", maxrevs);
 					version = qobj.optString("version", version);
 					fields_ = qobj.optJSONArray("fields");
+					format  = qobj.optString("format", format);
 					if ( fields_ == null ) {
 						String f = qobj.optString("fields");
 						if ( f == null  ||  "".equals(f) ) {
@@ -248,15 +251,18 @@ public class SearcherDaemon implements Runnable {
 						}
 						logger.info("HTTP parameters " + map);
 						query   = map.get("q");
-						hitsper = stror(map.get("collapse_hits"), "no");
-						maxrevs = (int)ClassUtils.parseValue(stror(map.get("max_revs"), "1000"), int.class);
-						version = stror(map.get("version"), "0.1");
+						hitsper = stror(map.get("collapse_hits"), hitsper);
+						maxrevs = (int)ClassUtils.parseValue(stror(map.get("max_revs"), "" + maxrevs), int.class);
+						version = stror(map.get("version"), "" + version);
 						fields  = map.get("fields") != null ? Arrays.asList(map.get("fields").split(",")) : Collections.<String>emptyList();
+						format  = stror(map.get("format"), format);
+						callback = map.get("callback");
 						qobj.put("q", query);
 						qobj.put("collapse_hits", hitsper);
 						qobj.put("max_revs", maxrevs);
 						qobj.put("version", version);
 						qobj.put("fields", fields);
+						qobj.put("format", format);
 					}
 				// } else if (msg instanceof HttpContent) {
 				// 	HttpContent httpContent = (HttpContent) msg;
@@ -312,18 +318,25 @@ public class SearcherDaemon implements Runnable {
 								put("fields", new JSONArray(fields.toArray())));
 
 				ret.put("elapsed", System.currentTimeMillis() - processingStartMillis);
-				final String str = ret.toString();
+				final StringBuffer res = new StringBuffer();
+				if ( msg instanceof HttpRequest && format.equals("jsonp") && !"".equals(callback) ) {
+					res.append(callback + "(");
+					res.append(ret.toString());
+					res.append(");");
+				} else {
+					res.append(ret.toString());
+				}
 				ChannelFuture f;
 				if ( msg instanceof HttpRequest ) {
 					FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-					response.content().writeBytes(str.getBytes());
+					response.content().writeBytes(res.toString().getBytes());
 					f = ctx.write(response);
 				} else {
-					f = ctx.write(str);
+					f = ctx.write(res);
 				}
 				f.addListener(new ChannelFutureListener() {
             public void operationComplete(ChannelFuture future) {
-							logger.info("responded in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - processingStartMillis) + " (" + str.length() + " characters)");
+							logger.info("responded in " + DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - processingStartMillis) + " (" + res.length() + " characters)");
 							Channel ch = future.channel();
 							ch.close();
 							logger.info("connection closed");
