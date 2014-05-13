@@ -16,57 +16,59 @@
   f<e?g[c]||(b[f+1]&&isNaN(b[f+1])?{}:[]):a,g=m;else h.isArray(d[c])?d[c].push(a):d[c]=void 0!==d[c]?[d[c],a]:a;else c&&(d[c]=j?void 0:"")});return d}})(jQuery);
 
   $(function(){
-
+    var host = 'http://localhost:8081/';
     function draw(query, $chart) {
       $.ajax({
-        url: 'http://localhost:8081/',
-            data: {
-              format: 'jsonp',
-              q: query,
-              collapse_hits: 'month',
+        url: host,
+        data: {
+          format: 'jsonp',
+          q: query,
+          collapse_hits: 'month',
+        },
+        timeout: 2000,
+        dataType: 'jsonp',
+        cache: true
+      }).done(function(data, textStatus, jqXHR) {
+        var dates = data.hits.map(function(x){ return x[0] + '-01';});
+        dates.unshift('date');
+        var hits  = data.hits.map(function(x){ return x[1];});
+        hits.unshift('# of "' + query + '"');
+        var chart = c3.generate({
+          bindto: $chart,
+          
+          data: {
+            x: 'date',
+            x_format : '%Y-%m-%d',
+            columns: [
+              dates,
+              hits,
+            ],
+            type: 'bar',
+            order: 'asc',
+          },
+          axis: {
+            x: {
+              type: 'timeseries'
             },
-            dataType: 'jsonp',
-            cache: true
-          }).done(function(data, textStatus, jqXHR) {
+            y: {
+              label: 'number of hits'
+            }
+          },
+          grid: {
+            y: { show: true }
+          },
+        });
+        
+        window.setTimeout(function(){
+          $('#savelink a').html('<a href-lang="image/svg+xml" href="data:image/svg+xml,' + encodeURIComponent(($('<div/>').append($('svg', $chart).clone())).html()) + '" download="chart.svg">Save<a>');
+        }, 1000);
+        
+        $('#title .query').text(query);
+        document.title = $('#title').text();
 
-            var dates = data.hits.map(function(x){ return x[0] + '-01';});
-            dates.unshift('date');
-            var hits  = data.hits.map(function(x){ return x[1];});
-            hits.unshift('# of "' + query + '"');
-            var chart = c3.generate({
-              bindto: $chart,
-              
-              data: {
-                x: 'date',
-                x_format : '%Y-%m-%d',
-                columns: [
-                  dates,
-                  hits,
-                ],
-                type: 'bar',
-                order: 'asc',
-              },
-              axis: {
-                x: {
-                  type: 'timeseries'
-                },
-                y: {
-                  label: 'number of hits'
-                }
-              },
-              grid: {
-                y: { show: true }
-              },
-            });
-
-            window.setTimeout(function(){
-              $('#savelink a').html('<a href-lang="image/svg+xml" href="data:image/svg+xml,' + encodeURIComponent(($('<div/>').append($('svg', $chart).clone())).html()) + '" download="chart.svg">Save<a>');
-            }, 1000);
-
-          }
-        )
-      $('#title .query').text(query);
-      document.title = $('#title').text();
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        $chart.append($('<p/>').text('Failed to receive data. Make sure to run SearcherDaemon in the HTTP mode (-Dhttp=true) at '+host+'.')).append($('<p/>').text(JSON.stringify([jqXHR, textStatus, errorThrown])));
+      });
     }
 
     var params = $.deparam(location.search.substr(1));
